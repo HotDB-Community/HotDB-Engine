@@ -281,7 +281,6 @@ fi
     -DWITH_EXTRA_CHARSETS=all                   \
     -DWITH_CURL=system                          \
     -DWITH_ENTERPRISE_ENCRYPTION=1              \
-    -DWITH_SSL_PATH=/usr/local/ssl              \
     -DWITH_ZLIB=bundled                         \
     -DWITH_BOOST="$boost_dir/boost/"            \
     -DWITH_INNOBASE_STORAGE_ENGINE=1            \
