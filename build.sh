@@ -18,8 +18,6 @@ Usage: `basename $0` [-b <boost_dir>] [-d <dest_dir>] [-t debug|release] [-B <bu
 
   -d                      Set the destination directory. Default: $dest_dir.
 
-  -g                      Turn on unittest (gmock) compilation.
-
   -t                      Select the build type. Default: $build_type.
                           MySQL defines build type as: Debug, Release, 
                           RelWithDebInfo.  The mapping here is: 
@@ -78,10 +76,6 @@ parse_options() {
     -d)
       shift
       dest_dir=`get_option_value "$1"`
-    ;;
-    -g)
-      shift
-      gmock_enable="1"
     ;;
     -t=*)
       build_type=`get_option_value "$1"`
@@ -204,13 +198,11 @@ dump_options() {
   echo "msan=$msan"
   echo "tsan=$tsan"
   echo "ubsan=$ubsan"
-  echo "gmock_zip=$gmock_zip"
 }
 
 pwd=`pwd`
 build_type="debug"
 dest_dir="/usr/local/cbase"
-build_dir="bld-$build_type"
 boost_dir="$pwd/"
 tsmdir="$pwd/extra/TencentSM/TencentSM-1.7.3-2"
 valgrind=0      # Default, turn-ed off
@@ -219,14 +211,10 @@ asan=0
 msan=0
 tsan=0
 ubsan=0
-gmock_zip=""
 generate_binary="1"
 
 parse_options "$@"
-
-if [ "${gmock_enable}x" == "1x" ];then
-  gmock_zip="$pwd/source_downloads/googletest-release-1.10.0.zip"
-fi
+build_dir="bld-$build_type"
 
 check_options
 dump_options
@@ -296,7 +284,6 @@ fi
     -DWITH_TSAN=$tsan                           \
     -DWITH_UBSAN=$ubsan                         \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON          \
-    -DLOCAL_GMOCK_ZIP="${gmock_zip}"            \
     -DGIT_COMMIT="$git_log"                     \
     -DDOWNLOAD_BOOST=1
 
