@@ -359,7 +359,6 @@ MYSQL_ADD_EXECUTABLE(merge_small_tests-t ${ALL_SMALL_TESTS}
 IF(WIN32)
   LIST(APPEND ALL_LARGE_TESTS ../../sql/nt_servc.cc)
 ENDIF()
-LIST(APPEND ALL_LARGE_TESTS ../../storage/example/ha_example.cc)
 
 MYSQL_ADD_EXECUTABLE(merge_large_tests-t ${ALL_LARGE_TESTS}
   ADD_TEST merge_large_tests
@@ -394,9 +393,6 @@ FOREACH(test ${SERVER_TESTS})
   SET(SRC_FILES ${test}-t.cc)
   IF(WIN32)
     LIST(APPEND SRC_FILES $<TARGET_OBJECTS:my_nt_servc>)
-  ENDIF()
-  IF(test MATCHES "table_cache")
-    LIST(APPEND SRC_FILES ../../storage/example/ha_example.cc)
   ENDIF()
   MYSQL_ADD_EXECUTABLE(${test}-t ${SRC_FILES}
     ENABLE_EXPORTS

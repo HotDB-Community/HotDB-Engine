@@ -27,7 +27,6 @@
 #include "my_inttypes.h"
 #include "sql/mysqld_thd_manager.h"
 #include "sql/table_cache.h"
-#include "storage/example/ha_example.h"
 #include "unittest/gunit/test_utils.h"
 
 /*
@@ -157,7 +156,8 @@ class Mock_share : public TABLE_SHARE {
       TABLE::file and TABLE::db_stat. Code that frees unused
       TABLE objects needs proper "handler" instance.
     */
-    result->file = new (&m_mem_root) ha_example(example_hton, this);
+    //result->file = new (&m_mem_root) ha_example(example_hton, this);
+    result->file = nullptr;
     result->db_stat = HA_READ_ONLY;
 
     return result;
