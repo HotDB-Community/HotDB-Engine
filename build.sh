@@ -278,6 +278,7 @@ fi
     -DENABLED_LOCAL_INFILE=1                    \
     -DWITH_FEDERATED_STORAGE_ENGINE=0           \
     -DWITH_EXAMPLE_STORAGE_ENGINE=0             \
+    -DWITH_NDB=0                                \
     -DINSTALL_LAYOUT=STANDALONE                 \
     -DWITH_ASAN=$asan                           \
     -DWITH_MSAN=$msan                           \
