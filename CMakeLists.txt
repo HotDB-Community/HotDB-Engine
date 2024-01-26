@@ -2274,13 +2274,6 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/include/mysql_version.h.in
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/sql/sql_builtin.cc.in
     ${CMAKE_BINARY_DIR}/sql/sql_builtin.cc)
 
-# depends on mysql_version.h to exist
-IF(NOT WITHOUT_SERVER)
-  IF(WITH_ROUTER)
-    ADD_SUBDIRECTORY(router)
-  ENDIF()
-ENDIF()
-
 IF(ENABLE_GCOV)
   INCLUDE(fastcov)
 ENDIF()
