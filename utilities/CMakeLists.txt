@@ -151,23 +151,3 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}/sql
   )
 
-# We use the InnoDB code directly in case the code changes.
-MYSQL_ADD_EXECUTABLE(innochecksum
-  innochecksum.cc
-  COMPONENT Server
-  DEPENDENCIES GenError
-  LINK_LIBRARIES mysys innodb_zipdecompress ${LZ4_LIBRARY}
-  )
-TARGET_COMPILE_DEFINITIONS(innochecksum PRIVATE UNIV_NO_ERR_MSGS UNIV_LIBRARY)
-IF(MY_COMPILER_IS_GNU_OR_CLANG)
-  ADD_COMPILE_FLAGS(innochecksum.cc
-    COMPILE_FLAGS "-Wno-unused-parameter -Wno-cast-qual")
-ENDIF()
-
-# This compiler says -Werror=stringop-overflow= for:
-# memcmp(&space_id, buf.begin() + FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID, 4)
-IF(MY_COMPILER_IS_GNU_8)
-  ADD_COMPILE_FLAGS(innochecksum.cc COMPILE_FLAGS "-Wno-stringop-overflow")
-  MY_TARGET_LINK_OPTIONS(innochecksum "-Wno-stringop-overflow")
-ENDIF()
-
