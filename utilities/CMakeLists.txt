@@ -171,14 +171,3 @@ IF(MY_COMPILER_IS_GNU_8)
   MY_TARGET_LINK_OPTIONS(innochecksum "-Wno-stringop-overflow")
 ENDIF()
 
-MYSQL_ADD_EXECUTABLE(ibd2sdi
-  ibd2sdi.cc
-  COMPONENT Server
-  DEPENDENCIES GenError
-  LINK_LIBRARIES mysys innodb_zipdecompress ${LZ4_LIBRARY}
-  )
-TARGET_COMPILE_DEFINITIONS(ibd2sdi PRIVATE UNIV_NO_ERR_MSGS UNIV_LIBRARY DISABLE_PSI_MEMORY)
-IF(MY_COMPILER_IS_GNU_OR_CLANG)
-  ADD_COMPILE_FLAGS(ibd2sdi.cc
-    COMPILE_FLAGS "-Wno-unused-parameter -Wno-cast-qual")
-ENDIF()
