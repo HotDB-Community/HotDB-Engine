@@ -71,12 +71,7 @@ MYSQL_ADD_EXECUTABLE(mysqltest
   ENABLE_EXPORTS
   LINK_LIBRARIES mysqlclient
   )
-MYSQL_ADD_EXECUTABLE(mysqlcheck
-  check/mysqlcheck.cc
-  check/mysqlcheck_core.cc
-  multi_factor_passwordopt-vars.cc
-  LINK_LIBRARIES mysqlclient
-  )
+
 MYSQL_ADD_EXECUTABLE(mysqldump
   mysqldump.cc
   multi_factor_passwordopt-vars.cc

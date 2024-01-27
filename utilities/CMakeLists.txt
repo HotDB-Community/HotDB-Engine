@@ -112,17 +112,6 @@ MYSQL_ADD_EXECUTABLE(static_thread_local_test
   EXCLUDE_FROM_ALL
   )
 
-MYSQL_ADD_EXECUTABLE(my_print_defaults
-  my_print_defaults.cc
-  COMPONENT Server
-  LINK_LIBRARIES mysys
-  )
-MYSQL_ADD_EXECUTABLE(perror
-  perror.cc
-  COMPONENT Server
-  DEPENDENCIES GenError
-  LINK_LIBRARIES mysys
-  )
 IF(BUILD_BUNDLED_LZ4)
   MYSQL_ADD_EXECUTABLE(lz4_decompress
     lz4_decompress.cc
