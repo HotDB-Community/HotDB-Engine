@@ -3509,6 +3509,8 @@ static int test_plugin_options(
     const std::optional<enum_plugin_load_option> force_load_option) {
   struct sys_var_chain chain = {nullptr, nullptr};
   bool disable_plugin;
+  const char *hdbe_prefix = "hdbe_"; int hdbe_prefix_len = strlen(hdbe_prefix);
+  const char *hdbe_name = "hotdbengine"; int hdbe_name_len = strlen(hdbe_name);
 
   /*
     We should use tmp->mem_root here instead of the global plugin_mem_root,
@@ -3610,9 +3612,17 @@ static int test_plugin_options(
     if ((var = find_bookmark(plugin_name.str, o->name, o->flags)))
       v = new (mem_root) sys_var_pluginvar(&chain, var->key + 1, o);
     else {
+      if (memcmp(o->name, hdbe_prefix, hdbe_prefix_len) == 0)  {
+        len = hdbe_name_len + strlen(o->name) - hdbe_prefix_len  + 2;
+        varname = (char *)mem_root->Alloc(len);
+        const char *real_name = o->name + hdbe_prefix_len;
+        strxmov(varname, hdbe_name, "-", real_name, NullS);
+      }
+      else {
       len = plugin_name.length + strlen(o->name) + 2;
       varname = (char *)mem_root->Alloc(len);
       strxmov(varname, plugin_name.str, "-", o->name, NullS);
+      }
       my_casedn_str(&my_charset_latin1, varname);
       convert_dash_to_underscore(varname, len - 1);
       v = new (mem_root) sys_var_pluginvar(&chain, varname, o);
