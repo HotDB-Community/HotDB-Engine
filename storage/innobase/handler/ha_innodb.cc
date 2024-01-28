@@ -22746,6 +22746,14 @@ static MYSQL_SYSVAR_ULONG(thread_concurrency, srv_thread_concurrency,
                           "thread throttling.",
                           nullptr, innodb_thread_concurrency_update, 0, 0, 1000,
                           0);
+static MYSQL_SYSVAR_ULONG(hdbe_thread_concurrency, srv_thread_concurrency,
+                          PLUGIN_VAR_RQCMDARG,
+                          "Helps in performance tuning in heavily concurrent "
+                          "environments. Sets the maximum number of threads "
+                          "allowed inside InnoDB. Value 0 will disable the "
+                          "thread throttling.",
+                          nullptr, innodb_thread_concurrency_update, 0, 0, 1000,
+                          0);
 
 static MYSQL_SYSVAR_ULONG(
     adaptive_max_sleep_delay, srv_adaptive_max_sleep_delay, PLUGIN_VAR_RQCMDARG,
@@ -23261,6 +23269,7 @@ static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(fsync_threshold),
     MYSQL_SYSVAR(table_locks),
     MYSQL_SYSVAR(thread_concurrency),
+    MYSQL_SYSVAR(hdbe_thread_concurrency),
     MYSQL_SYSVAR(adaptive_max_sleep_delay),
     MYSQL_SYSVAR(thread_sleep_delay),
     MYSQL_SYSVAR(tmpdir),
