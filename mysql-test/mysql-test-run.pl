@@ -3225,7 +3225,7 @@ sub environment_setup {
   $ENV{'MYSQL'}               = my $mysql_cmd = client_arguments("mysql");
   $ENV{'MYSQL_OPTIONS'}       = substr($mysql_cmd, index($mysql_cmd, " "));
   $ENV{'MYSQL_BINLOG'}        = client_arguments("mysqlbinlog");
-  $ENV{'MYSQL_CHECK'}         = client_arguments("mysqlcheck");
+# $ENV{'MYSQL_CHECK'}         = client_arguments("mysqlcheck");
   $ENV{'MYSQL_CLIENT_TEST'}   = mysql_client_test_arguments();
   $ENV{'MYSQL_DUMP'}          = mysqldump_arguments(".1");
   $ENV{'MYSQL_DUMP_SLAVE'}    = mysqldump_arguments(".2");
@@ -3289,30 +3289,29 @@ sub environment_setup {
   $ENV{'MYSQL_FIX_PRIVILEGE_TABLES'} = $file_mysql_fix_privilege_tables;
 
   # my_print_defaults
-  my $exe_my_print_defaults =
-    mtr_exe_exists("$path_client_bindir/my_print_defaults");
-  $ENV{'MYSQL_MY_PRINT_DEFAULTS'} = native_path($exe_my_print_defaults);
+  #my $exe_my_print_defaults =
+  #  mtr_exe_exists("$path_client_bindir/my_print_defaults");
+  #$ENV{'MYSQL_MY_PRINT_DEFAULTS'} = native_path($exe_my_print_defaults);
 
   # Setup env so childs can execute innochecksum
-  my $exe_innochecksum = mtr_exe_exists("$path_client_bindir/innochecksum");
-  $ENV{'INNOCHECKSUM'} = native_path($exe_innochecksum);
-  if ($opt_valgrind_clients) {
-    my $args;
-    mtr_init_args(\$args);
-    valgrind_client_arguments($args, \$exe_innochecksum);
-    $ENV{'INNOCHECKSUM'} = mtr_args2str($exe_innochecksum, @$args);
-  }
+  #my $exe_innochecksum = mtr_exe_exists("$path_client_bindir/innochecksum");
+  #$ENV{'INNOCHECKSUM'} = native_path($exe_innochecksum);
+  #if ($opt_valgrind_clients) {
+  #  my $args;
+  #  mtr_init_args(\$args);
+  #  valgrind_client_arguments($args, \$exe_innochecksum);
+  #  $ENV{'INNOCHECKSUM'} = mtr_args2str($exe_innochecksum, @$args);
+  #}
 
   # Setup env so childs can execute ibd2sdi
-  my $exe_ibd2sdi = mtr_exe_exists("$path_client_bindir/ibd2sdi");
-  $ENV{'IBD2SDI'} = native_path($exe_ibd2sdi);
-
-  if ($opt_valgrind_clients) {
-    my $args;
-    mtr_init_args(\$args);
-    valgrind_client_arguments($args, \$exe_ibd2sdi);
-    $ENV{'IBD2SDI'} = mtr_args2str($exe_ibd2sdi, @$args);
-  }
+  #my $exe_ibd2sdi = mtr_exe_exists("$path_client_bindir/ibd2sdi");
+  #$ENV{'IBD2SDI'} = native_path($exe_ibd2sdi);
+  #if ($opt_valgrind_clients) {
+  #  my $args;
+  #  mtr_init_args(\$args);
+  #  valgrind_client_arguments($args, \$exe_ibd2sdi);
+  #  $ENV{'IBD2SDI'} = mtr_args2str($exe_ibd2sdi, @$args);
+  #}
 
   # Setup env so childs can execute myisampack and myisamchk
   $ENV{'MYISAMCHK'} =
@@ -3337,8 +3336,8 @@ sub environment_setup {
   }
 
   # perror
-  my $exe_perror = mtr_exe_exists("$path_client_bindir/perror");
-  $ENV{'MY_PERROR'} = native_path($exe_perror);
+  #my $exe_perror = mtr_exe_exists("$path_client_bindir/perror");
+  #$ENV{'MY_PERROR'} = native_path($exe_perror);
 
   # mysql_tzinfo_to_sql is not used on Windows, but vs_config_dirs
   # is needed when building with Xcode on OSX.
