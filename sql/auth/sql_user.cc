@@ -551,10 +551,10 @@ static bool auth_verify_password_history(
   if (intact.check(history_table->table, ACL_TABLES::TABLE_PASSWORD_HISTORY))
     return true;
 
-  user_field = table->field[MYSQL_PASSWORD_HISTORY_FIELD_USER];
-  host_field = table->field[MYSQL_PASSWORD_HISTORY_FIELD_HOST];
-  ts_field = table->field[MYSQL_PASSWORD_HISTORY_FIELD_PASSWORD_TIMESTAMP];
-  cred_field = table->field[MYSQL_PASSWORD_HISTORY_FIELD_PASSWORD];
+  user_field = table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_USER];
+  host_field = table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_HOST];
+  ts_field = table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_PASSWORD_TIMESTAMP];
+  cred_field = table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_PASSWORD];
 
   table->use_all_columns();
 
@@ -669,15 +669,15 @@ static bool auth_verify_password_history(
       (auth->authentication_flags & AUTH_FLAG_USES_INTERNAL_STORAGE)) {
     /* add history if needed */
     restore_record(table, s->default_values);
-    table->field[MYSQL_PASSWORD_HISTORY_FIELD_USER]->store(
+    table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_USER]->store(
         user->str, user->length, system_charset_info);
-    table->field[MYSQL_PASSWORD_HISTORY_FIELD_HOST]->store(
+    table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_HOST]->store(
         host->str, host->length, system_charset_info);
-    table->field[MYSQL_PASSWORD_HISTORY_FIELD_PASSWORD_TIMESTAMP]->store_time(
+    table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_PASSWORD_TIMESTAMP]->store_time(
         &tm_now);
-    table->field[MYSQL_PASSWORD_HISTORY_FIELD_PASSWORD]->store(
+    table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_PASSWORD]->store(
         cred_hash, cred_hash_length, &my_charset_utf8mb3_bin);
-    table->field[MYSQL_PASSWORD_HISTORY_FIELD_PASSWORD]->set_notnull();
+    table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_PASSWORD]->set_notnull();
 
     if (0 != (error = table->file->ha_write_row(table->record[0]))) {
       table->file->print_error(error, MYF(0));
@@ -743,8 +743,8 @@ static bool handle_password_history_table(THD *thd, Table_ref *tables,
     goto end;
   }
 
-  user_field = table->field[MYSQL_PASSWORD_HISTORY_FIELD_USER];
-  host_field = table->field[MYSQL_PASSWORD_HISTORY_FIELD_HOST];
+  user_field = table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_USER];
+  host_field = table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_HOST];
 
   table->use_all_columns();
 
@@ -791,9 +791,9 @@ static bool handle_password_history_table(THD *thd, Table_ref *tables,
     } else if (user_to) {
       /* we're renaming, set the new user/host values */
       store_record(table, record[1]);
-      table->field[MYSQL_PASSWORD_HISTORY_FIELD_USER]->store(
+      table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_USER]->store(
           user_to->user.str, user_to->user.length, system_charset_info);
-      table->field[MYSQL_PASSWORD_HISTORY_FIELD_HOST]->store(
+      table->field[HOTDBENGINE_PASSWORD_HISTORY_FIELD_HOST]->store(
           user_to->host.str, user_to->host.length, system_charset_info);
       error = table->file->ha_update_row(table->record[1], table->record[0]);
       if (error) break;

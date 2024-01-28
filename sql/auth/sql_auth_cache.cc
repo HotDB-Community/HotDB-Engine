@@ -974,8 +974,8 @@ GRANT_NAME::GRANT_NAME(TABLE *form, bool is_routine) {
   hash_key.append(tname);
   hash_key.push_back('\0');
 
-  if (form->field[MYSQL_TABLES_PRIV_FIELD_TABLE_PRIV]) {
-    privs = (ulong)form->field[MYSQL_TABLES_PRIV_FIELD_TABLE_PRIV]->val_int();
+  if (form->field[HOTDBENGINE_TABLES_PRIV_FIELD_TABLE_PRIV]) {
+    privs = (ulong)form->field[HOTDBENGINE_TABLES_PRIV_FIELD_TABLE_PRIV]->val_int();
     privs = fix_rights_for_table(privs);
   }
 }
@@ -989,8 +989,8 @@ GRANT_TABLE::GRANT_TABLE(TABLE *form)
     return;
   }
 
-  if (form->field[MYSQL_TABLES_PRIV_FIELD_COLUMN_PRIV]) {
-    cols = (ulong)form->field[MYSQL_TABLES_PRIV_FIELD_COLUMN_PRIV]->val_int();
+  if (form->field[HOTDBENGINE_TABLES_PRIV_FIELD_COLUMN_PRIV]) {
+    cols = (ulong)form->field[HOTDBENGINE_TABLES_PRIV_FIELD_COLUMN_PRIV]->val_int();
     cols = fix_rights_for_column(cols);
   } else
     cols = 0;
@@ -1866,13 +1866,13 @@ static bool acl_load(THD *thd, Table_ref *tables) {
     /* Reading record in mysql.db */
     ACL_DB db;
     db.host.update_hostname(
-        get_field(&global_acl_memory, table->field[MYSQL_DB_FIELD_HOST]));
-    db.db = get_field(&global_acl_memory, table->field[MYSQL_DB_FIELD_DB]);
+        get_field(&global_acl_memory, table->field[HOTDBENGINE_DB_FIELD_HOST]));
+    db.db = get_field(&global_acl_memory, table->field[HOTDBENGINE_DB_FIELD_DB]);
     if (!db.db) {
       LogErr(WARNING_LEVEL, ER_AUTHCACHE_DB_IGNORED_EMPTY_NAME);
       continue;
     }
-    db.user = get_field(&global_acl_memory, table->field[MYSQL_DB_FIELD_USER]);
+    db.user = get_field(&global_acl_memory, table->field[HOTDBENGINE_DB_FIELD_USER]);
     if (check_no_resolve && hostname_requires_resolving(db.host.get_host()) &&
         strcmp(db.host.get_host(), "localhost") != 0) {
       LogErr(WARNING_LEVEL, ER_AUTHCACHE_DB_SKIPPED_NEEDS_RESOLVE, db.db,

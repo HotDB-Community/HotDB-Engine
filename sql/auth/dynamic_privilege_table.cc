@@ -129,7 +129,7 @@ bool populate_dynamic_privilege_caches(THD *thd, Table_ref *tablelst) {
       char *priv =
           get_field(&tmp_mem, table->field[MYSQL_DYNAMIC_PRIV_FIELD_PRIV]);
       char *with_grant_option = get_field(
-          &tmp_mem, table->field[MYSQL_DYNAMIC_PRIV_FIELD_WITH_GRANT_OPTION]);
+          &tmp_mem, table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_WITH_GRANT_OPTION]);
       if (priv == nullptr) {
         LogErr(WARNING_LEVEL, ER_EMPTY_PRIVILEGE_NAME_IGNORED);
         continue;  // skip invalid privilege
@@ -213,7 +213,7 @@ bool modify_dynamic_privileges_in_table(THD *thd, TABLE *table,
       privilege.str, privilege.length, system_charset_info);
   key_copy(user_key, table->record[0], table->key_info,
            table->key_info->key_length);
-  table->field[MYSQL_DYNAMIC_PRIV_FIELD_WITH_GRANT_OPTION]->store(
+  table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_WITH_GRANT_OPTION]->store(
       (with_grant_option == true ? "Y" : "N"), 1, system_charset_info);
   ret = table->file->ha_index_read_idx_map(table->record[0], 0, user_key,
                                            HA_WHOLE_KEY, HA_READ_KEY_EXACT);
