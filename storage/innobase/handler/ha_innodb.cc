@@ -22746,14 +22746,6 @@ static MYSQL_SYSVAR_ULONG(thread_concurrency, srv_thread_concurrency,
                           "thread throttling.",
                           nullptr, innodb_thread_concurrency_update, 0, 0, 1000,
                           0);
-static MYSQL_SYSVAR_ULONG(hdbe_thread_concurrency, srv_thread_concurrency,
-                          PLUGIN_VAR_RQCMDARG,
-                          "Helps in performance tuning in heavily concurrent "
-                          "environments. Sets the maximum number of threads "
-                          "allowed inside InnoDB. Value 0 will disable the "
-                          "thread throttling.",
-                          nullptr, innodb_thread_concurrency_update, 0, 0, 1000,
-                          0);
 
 static MYSQL_SYSVAR_ULONG(
     adaptive_max_sleep_delay, srv_adaptive_max_sleep_delay, PLUGIN_VAR_RQCMDARG,
@@ -23902,6 +23894,193 @@ static MYSQL_SYSVAR_STR(hdbe_directories, srv_innodb_directories,
                         "'innodb-data-home-dir;innodb-undo-directory;datadir'",
                         nullptr, nullptr, nullptr);
 //stage 3
+static MYSQL_SYSVAR_ULONG(
+    hdbe_sync_spin_loops, srv_n_spin_wait_rounds, PLUGIN_VAR_RQCMDARG,
+    "Count of spin-loop rounds in InnoDB mutexes (30 by default)", nullptr,
+    nullptr, 30L, 0L, ~0UL, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_spin_wait_delay, srv_spin_wait_delay, PLUGIN_VAR_OPCMDARG,
+    "Maximum delay between polling for a spin lock (6 by default)", nullptr,
+    nullptr, 6L, 0L, 1000, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_spin_wait_pause_multiplier,
+                          ut::spin_wait_pause_multiplier, PLUGIN_VAR_RQCMDARG,
+                          "Controls how many times in a row to use a PAUSE "
+                          "instruction to achieve one unit of delay in a spin "
+                          "lock (see @@innodb_spin_wait_delay), defaults to 50",
+                          nullptr, nullptr, 50, 0, 100, 0);
+
+static MYSQL_SYSVAR_ULONGLONG(
+    hdbe_fsync_threshold, os_fsync_threshold, PLUGIN_VAR_RQCMDARG,
+    "The value of this variable determines how often InnoDB calls fsync when "
+    "creating a new file. Default is zero which would make InnoDB flush the "
+    "entire file at once before closing it.",
+    nullptr, nullptr, 0, 0, ~0ULL, UNIV_PAGE_SIZE);
+
+static MYSQL_THDVAR_BOOL(hdbe_table_locks, PLUGIN_VAR_OPCMDARG,
+                         "Enable InnoDB locking in LOCK TABLES",
+                         /* check_func */ nullptr, /* update_func */ nullptr,
+                         /* default */ true);
+
+static MYSQL_SYSVAR_ULONG(hdbe_thread_concurrency, srv_thread_concurrency,
+                          PLUGIN_VAR_RQCMDARG,
+                          "Helps in performance tuning in heavily concurrent "
+                          "environments. Sets the maximum number of threads "
+                          "allowed inside InnoDB. Value 0 will disable the "
+                          "thread throttling.",
+                          nullptr, innodb_thread_concurrency_update, 0, 0, 1000,
+                          0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_adaptive_max_sleep_delay, srv_adaptive_max_sleep_delay, PLUGIN_VAR_RQCMDARG,
+    "The upper limit of the sleep delay in usec. Value of 0 disables it.",
+    nullptr, nullptr, 150000, /* Default setting */
+    0,                        /* Minimum value */
+    1000000, 0);              /* Maximum value */
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_thread_sleep_delay, srv_thread_sleep_delay, PLUGIN_VAR_RQCMDARG,
+    "Time of innodb thread sleeping before joining InnoDB queue (usec)."
+    " Value 0 disable a sleep",
+    nullptr, nullptr, 10000L, 0L, 1000000L, 0);
+
+static MYSQL_THDVAR_STR(hdbe_tmpdir, PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_MEMALLOC,
+                        "Directory for temporary non-tablespace files.",
+                        innodb_tmpdir_validate, nullptr, nullptr);
+
+static MYSQL_SYSVAR_LONG(
+    hdbe_autoinc_lock_mode, innobase_autoinc_lock_mode,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "The AUTOINC lock modes supported by InnoDB:"
+    " 0 => Old style AUTOINC locking (for backward compatibility);"
+    " 1 => New style AUTOINC locking;"
+    " 2 => No AUTOINC locking (unsafe for SBR)",
+    nullptr, nullptr, AUTOINC_NO_LOCKING, /* Default setting */
+    AUTOINC_OLD_STYLE_LOCKING,            /* Minimum value */
+    AUTOINC_NO_LOCKING, 0);               /* Maximum value */
+
+static MYSQL_SYSVAR_STR(hdbe_version, innodb_version_str,
+                        PLUGIN_VAR_NOCMDOPT | PLUGIN_VAR_READONLY |
+                            PLUGIN_VAR_NOPERSIST,
+                        "InnoDB version", nullptr, nullptr, INNODB_VERSION_STR);
+
+static MYSQL_SYSVAR_BOOL(hdbe_use_native_aio, srv_use_native_aio,
+                         PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_READONLY,
+                         "Use native AIO if supported on this platform.",
+                         nullptr, nullptr, true);
+
+#ifdef HAVE_LIBNUMA
+static MYSQL_SYSVAR_BOOL(
+    hdbe_numa_interleave, srv_numa_interleave,
+    PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_READONLY,
+    "Use NUMA interleave memory policy to allocate InnoDB buffer pool.",
+    nullptr, nullptr, false);
+#endif /* HAVE_LIBNUMA */
+
+static MYSQL_SYSVAR_ENUM(hdbe_change_buffering, innodb_change_buffering,
+                         PLUGIN_VAR_RQCMDARG,
+                         "Buffer changes to reduce random access:"
+                         " OFF, ON, inserting, deleting, changing, or purging.",
+                         nullptr, nullptr, IBUF_USE_ALL,
+                         &innodb_change_buffering_typelib);
+
+static MYSQL_SYSVAR_UINT(
+    hdbe_change_buffer_max_size, srv_change_buffer_max_size, PLUGIN_VAR_RQCMDARG,
+    "Maximum on-disk size of change buffer in terms of percentage"
+    " of the buffer pool.",
+    nullptr, innodb_change_buffer_max_size_update, CHANGE_BUFFER_DEFAULT_SIZE,
+    0, 50, 0);
+
+#if defined UNIV_DEBUG || defined UNIV_IBUF_DEBUG
+static MYSQL_SYSVAR_UINT(
+    hdbe_change_buffering_debug, ibuf_debug, PLUGIN_VAR_RQCMDARG,
+    "Debug flags for InnoDB change buffering (0=none, 2=crash at merge)",
+    nullptr, nullptr, 0, 0, 2, 0);
+
+static MYSQL_SYSVAR_BOOL(hdbe_disable_background_merge,
+                         srv_ibuf_disable_background_merge,
+                         PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_RQCMDARG,
+                         "Disable change buffering merges by the master thread",
+                         nullptr, nullptr, false);
+#endif
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_random_read_ahead, srv_random_read_ahead, PLUGIN_VAR_NOCMDARG,
+    "Whether to use read ahead for random access within an extent.", nullptr,
+    nullptr, false);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_read_ahead_threshold, srv_read_ahead_threshold, PLUGIN_VAR_RQCMDARG,
+    "Number of pages that must be accessed sequentially for InnoDB to"
+    " trigger a readahead.",
+    nullptr, nullptr, 56, 0, 64, 0);
+
+static MYSQL_SYSVAR_BOOL(hdbe_read_only, srv_read_only_mode,
+                         PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY |
+                             PLUGIN_VAR_NOPERSIST,
+                         "Start InnoDB in read only mode (off by default)",
+                         nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_io_capacity, srv_io_capacity, PLUGIN_VAR_RQCMDARG,
+    "Number of IOPs the server can do. Tunes the background IO rate", nullptr,
+    innodb_io_capacity_update, 200, 100, ~0UL, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_io_capacity_max, srv_max_io_capacity,
+                          PLUGIN_VAR_RQCMDARG,
+                          "Limit to which innodb_io_capacity can be inflated.",
+                          nullptr, innodb_io_capacity_max_update,
+                          SRV_MAX_IO_CAPACITY_DUMMY_DEFAULT, 100,
+                          SRV_MAX_IO_CAPACITY_LIMIT, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_idle_flush_pct, srv_idle_flush_pct, PLUGIN_VAR_RQCMDARG,
+    "Up to what percentage of dirty pages to be flushed when server is found"
+    " idle.",
+    nullptr, nullptr, srv_idle_flush_pct_default, 0, 100, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_page_cleaners, srv_n_page_cleaners,
+    PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY,
+    "Page cleaner threads can be from 1 to 64. Default is 4.", nullptr, nullptr,
+    4, 1, 64, 0);
+
+static MYSQL_SYSVAR_STR(hdbe_monitor_enable, innobase_enable_monitor_counter,
+                        PLUGIN_VAR_RQCMDARG, "Turn on a monitor counter",
+                        innodb_monitor_validate, innodb_enable_monitor_update,
+                        nullptr);
+
+static MYSQL_SYSVAR_STR(hdbe_monitor_disable, innobase_disable_monitor_counter,
+                        PLUGIN_VAR_RQCMDARG, "Turn off a monitor counter",
+                        innodb_monitor_validate, innodb_disable_monitor_update,
+                        nullptr);
+
+static MYSQL_SYSVAR_STR(hdbe_monitor_reset, innobase_reset_monitor_counter,
+                        PLUGIN_VAR_RQCMDARG, "Reset a monitor counter",
+			innodb_monitor_validate, innodb_reset_monitor_update,
+                        nullptr);
+
+static MYSQL_SYSVAR_STR(hdbe_monitor_reset_all, innobase_reset_all_monitor_counter,
+                        PLUGIN_VAR_RQCMDARG,
+			"Reset all values for a monitor counter",
+                        innodb_monitor_validate,
+                        innodb_reset_all_monitor_update, nullptr);
+
+static MYSQL_SYSVAR_ULONG(hdbe_purge_threads, srv_n_purge_threads,
+                          PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY,
+                          "Purge threads can be from 1 to 32. Default is 4.",
+                          nullptr, nullptr, 4,   /* Default setting */
+                          1,                     /* Minimum value */
+                          MAX_PURGE_THREADS, 0); /* Maximum value */
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_purge_batch_size, srv_purge_batch_size, PLUGIN_VAR_OPCMDARG,
+    "Number of UNDO log pages to purge in one batch from the history list.",
+    nullptr, nullptr, 300, /* Default setting */
+    1,                     /* Minimum value */
+    5000, 0);              /* Maximum value */
+//stage 4
 
 static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(api_trx_level),
@@ -24040,7 +24219,6 @@ static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(fsync_threshold),
     MYSQL_SYSVAR(table_locks),
     MYSQL_SYSVAR(thread_concurrency),
-    MYSQL_SYSVAR(hdbe_thread_concurrency),
     MYSQL_SYSVAR(adaptive_max_sleep_delay),
     MYSQL_SYSVAR(thread_sleep_delay),
     MYSQL_SYSVAR(tmpdir),
@@ -24254,6 +24432,40 @@ static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(hdbe_sort_buffer_size),
     MYSQL_SYSVAR(hdbe_online_alter_log_max_size),
     MYSQL_SYSVAR(hdbe_directories),
+    MYSQL_SYSVAR(hdbe_sync_spin_loops),
+    MYSQL_SYSVAR(hdbe_spin_wait_delay),
+    MYSQL_SYSVAR(hdbe_spin_wait_pause_multiplier),
+    MYSQL_SYSVAR(hdbe_fsync_threshold),
+    MYSQL_SYSVAR(hdbe_table_locks),
+    MYSQL_SYSVAR(hdbe_thread_concurrency),
+    MYSQL_SYSVAR(hdbe_adaptive_max_sleep_delay),
+    MYSQL_SYSVAR(hdbe_thread_sleep_delay),
+    MYSQL_SYSVAR(hdbe_tmpdir),
+    MYSQL_SYSVAR(hdbe_autoinc_lock_mode),
+    MYSQL_SYSVAR(hdbe_version),
+    MYSQL_SYSVAR(hdbe_use_native_aio),
+#ifdef HAVE_LIBNUMA
+    MYSQL_SYSVAR(hdbe_numa_interleave),
+#endif /* HAVE_LIBNUMA */
+    MYSQL_SYSVAR(hdbe_change_buffering),
+    MYSQL_SYSVAR(hdbe_change_buffer_max_size),
+#if defined UNIV_DEBUG || defined UNIV_IBUF_DEBUG
+    MYSQL_SYSVAR(hdbe_change_buffering_debug),
+    MYSQL_SYSVAR(hdbe_disable_background_merge),
+#endif /* UNIV_DEBUG || UNIV_IBUF_DEBUG */
+    MYSQL_SYSVAR(hdbe_random_read_ahead),
+    MYSQL_SYSVAR(hdbe_read_ahead_threshold),
+    MYSQL_SYSVAR(hdbe_read_only),
+    MYSQL_SYSVAR(hdbe_io_capacity),
+    MYSQL_SYSVAR(hdbe_io_capacity_max),
+    MYSQL_SYSVAR(hdbe_idle_flush_pct),
+    MYSQL_SYSVAR(hdbe_page_cleaners),
+    MYSQL_SYSVAR(hdbe_monitor_enable),
+    MYSQL_SYSVAR(hdbe_monitor_disable),
+    MYSQL_SYSVAR(hdbe_monitor_reset),
+    MYSQL_SYSVAR(hdbe_monitor_reset_all),
+    MYSQL_SYSVAR(hdbe_purge_threads),
+    MYSQL_SYSVAR(hdbe_purge_batch_size),
     nullptr};
 
 mysql_declare_plugin(innobase){
