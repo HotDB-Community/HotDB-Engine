@@ -24275,6 +24275,103 @@ static MYSQL_SYSVAR_BOOL(
     false);
 //stage 5
 
+#ifdef UNIV_DEBUG
+static MYSQL_SYSVAR_UINT(hdbe_trx_rseg_n_slots_debug, trx_rseg_n_slots_debug,
+                         PLUGIN_VAR_RQCMDARG,
+                         "Debug flags for InnoDB to limit TRX_RSEG_N_SLOTS for "
+                         "trx_rsegf_undo_find_free()",
+                         nullptr, nullptr, 0, 0, 1024, 0);
+
+static MYSQL_SYSVAR_UINT(
+    hdbe_limit_optimistic_insert_debug, btr_cur_limit_optimistic_insert_debug,
+    PLUGIN_VAR_RQCMDARG,
+    "Artificially limit the number of records per B-tree page (0=unlimited).",
+    nullptr, nullptr, 0, 0, UINT_MAX32, 0);
+
+static MYSQL_SYSVAR_BOOL(hdbe_trx_purge_view_update_only_debug,
+                         srv_purge_view_update_only_debug, PLUGIN_VAR_NOCMDARG,
+                         "Pause actual purging any delete-marked records, but "
+                         "merely update the purge view."
+                         " It is to create artificially the situation the "
+                         "purge view have been updated"
+                         " but the each purges were not done yet.",
+                         nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_ULONG(
+        hdbe_fil_make_page_dirty_debug,
+        srv_fil_make_page_dirty_debug, PLUGIN_VAR_OPCMDARG,
+	"Make the first page of the given tablespace dirty.",
+        nullptr, innodb_make_page_dirty, UINT_MAX32, 0, UINT_MAX32, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_saved_page_number_debug, srv_saved_page_number_debug,
+                          PLUGIN_VAR_OPCMDARG, "An InnoDB page number.",
+                          nullptr, innodb_save_page_no, 0, 0, UINT_MAX32, 0);
+
+static MYSQL_SYSVAR_ENUM(
+    hdbe_compress_debug, srv_debug_compress, PLUGIN_VAR_RQCMDARG,
+    "Compress all tables, without specifying the COMPRESS table attribute",
+    nullptr, nullptr, Compression::NONE, &innodb_debug_compress_typelib);
+
+static MYSQL_SYSVAR_BOOL(hdbe_page_cleaner_disabled_debug,
+                         innodb_page_cleaner_disabled_debug,
+                         PLUGIN_VAR_OPCMDARG, "Disable page cleaner", nullptr,
+                         buf_flush_page_cleaner_disabled_debug_update, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_dict_stats_disabled_debug,
+                         innodb_dict_stats_disabled_debug, PLUGIN_VAR_OPCMDARG,
+                         "Disable dict_stats thread", nullptr,
+                         dict_stats_disabled_debug_update, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_master_thread_disabled_debug,
+                         srv_master_thread_disabled_debug, PLUGIN_VAR_OPCMDARG,
+                         "Disable master thread", nullptr,
+                         srv_master_thread_disabled_debug_update, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_sync_debug, srv_sync_debug,
+                         PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY,
+                         "Enable the sync debug checks", nullptr, nullptr,
+                         false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_buffer_pool_debug, srv_buf_pool_debug,
+                         PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY,
+                         "Enable buffer pool debug", nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_ddl_log_crash_reset_debug,
+                         innodb_ddl_log_crash_reset_debug, PLUGIN_VAR_OPCMDARG,
+                         "Reset all crash injection counters to 1", nullptr,
+                         ddl_log_crash_reset, false);
+
+static MYSQL_THDVAR_STR(hdbe_interpreter, PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_NOPERSIST,
+                        "Invoke InnoDB test interpreter with commands"
+                        " to be executed.",
+			ib_interpreter_check, ib_interpreter_update, "init");
+
+static MYSQL_THDVAR_STR(hdbe_interpreter_output,
+                        PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_MEMALLOC |
+                            PLUGIN_VAR_NOPERSIST,
+                        "Output from InnoDB testing module (ut0test).", nullptr,
+                        nullptr, "The Default Value");
+#endif /* UNIV_DEBUG */
+
+static MYSQL_THDVAR_ULONG(hdbe_parallel_read_threads, PLUGIN_VAR_RQCMDARG,
+                          "Number of threads to do parallel read.", nullptr,
+                          nullptr, 4,                   /* Default. */
+                          1,                            /* Minimum. */
+                          Parallel_reader::MAX_THREADS, /* Maximum. */
+                          0);
+
+static MYSQL_SYSVAR_DOUBLE(
+    hdbe_segment_reserve_factor, fseg_reserve_pct, PLUGIN_VAR_OPCMDARG,
+    "The segment_reserve_factor is the ratio x/y expressed in percentage,"
+    " where x is the number of free pages in the segment, and y is the total"
+    " number of pages in the segment.  The number of used pages in the segment"
+    " is given by (y-x). The number of free pages in the segment (x) will be"
+    " maintained such that the actual segment_reserve_factor will be >= the"
+    " requested segment_reserve_factor, which is contained in this variable.",
+    nullptr, nullptr, FSEG_RESERVE_PCT_DFLT, FSEG_RESERVE_PCT_MIN,
+    FSEG_RESERVE_PCT_MAX, 0);
+//stage 6
+
 static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(api_trx_level),
     MYSQL_SYSVAR(api_bk_commit_interval),
@@ -24695,6 +24792,24 @@ static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(hdbe_redo_log_archive_dirs),
     MYSQL_SYSVAR(hdbe_redo_log_encrypt),
     MYSQL_SYSVAR(hdbe_print_ddl_logs),
+#ifdef UNIV_DEBUG
+    MYSQL_SYSVAR(hdbe_trx_rseg_n_slots_debug),
+    MYSQL_SYSVAR(hdbe_limit_optimistic_insert_debug),
+    MYSQL_SYSVAR(hdbe_trx_purge_view_update_only_debug),
+    MYSQL_SYSVAR(hdbe_fil_make_page_dirty_debug),
+    MYSQL_SYSVAR(hdbe_saved_page_number_debug),
+    MYSQL_SYSVAR(hdbe_compress_debug),
+    MYSQL_SYSVAR(hdbe_page_cleaner_disabled_debug),
+    MYSQL_SYSVAR(hdbe_dict_stats_disabled_debug),
+    MYSQL_SYSVAR(hdbe_master_thread_disabled_debug),
+    MYSQL_SYSVAR(hdbe_sync_debug),
+    MYSQL_SYSVAR(hdbe_buffer_pool_debug),
+    MYSQL_SYSVAR(hdbe_ddl_log_crash_reset_debug),
+    MYSQL_SYSVAR(hdbe_interpreter),
+    MYSQL_SYSVAR(hdbe_interpreter_output),
+#endif /* UNIV_DEBUG */
+    MYSQL_SYSVAR(hdbe_parallel_read_threads),
+    MYSQL_SYSVAR(hdbe_segment_reserve_factor),
     nullptr};
 
 mysql_declare_plugin(innobase){
