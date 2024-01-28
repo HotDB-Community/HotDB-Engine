@@ -56,10 +56,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
 class THD;
 
-#define MYSQL_DYNAMIC_PRIV_FIELD_USER 0
-#define MYSQL_DYNAMIC_PRIV_FIELD_HOST 1
-#define MYSQL_DYNAMIC_PRIV_FIELD_PRIV 2
-#define MYSQL_DYNAMIC_PRIV_FIELD_GRANT 3
+#define HOTDBENGINE_DYNAMIC_PRIV_FIELD_USER 0
+#define HOTDBENGINE_DYNAMIC_PRIV_FIELD_HOST 1
+#define HOTDBENGINE_DYNAMIC_PRIV_FIELD_PRIV 2
+#define HOTDBENGINE_DYNAMIC_PRIV_FIELD_GRANT 3
 
 Dynamic_privilege_register g_dynamic_privilege_register;
 
@@ -121,13 +121,13 @@ bool populate_dynamic_privilege_caches(THD *thd, Table_ref *tablelst) {
     }
     while (!error && !(read_rec_errcode = iterator->Read())) {
       char *host =
-          get_field(&tmp_mem, table->field[MYSQL_DYNAMIC_PRIV_FIELD_HOST]);
+          get_field(&tmp_mem, table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_HOST]);
       if (host == nullptr) host = &percentile_character[0];
       char *user =
-          get_field(&tmp_mem, table->field[MYSQL_DYNAMIC_PRIV_FIELD_USER]);
+          get_field(&tmp_mem, table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_USER]);
       if (user == nullptr) user = &empty_str;
       char *priv =
-          get_field(&tmp_mem, table->field[MYSQL_DYNAMIC_PRIV_FIELD_PRIV]);
+          get_field(&tmp_mem, table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_PRIV]);
       char *with_grant_option = get_field(
           &tmp_mem, table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_WITH_GRANT_OPTION]);
       if (priv == nullptr) {
@@ -205,11 +205,11 @@ bool modify_dynamic_privileges_in_table(THD *thd, TABLE *table,
   if (table_intact.check(table, ACL_TABLES::TABLE_DYNAMIC_PRIV)) return true;
 
   table->use_all_columns();
-  table->field[MYSQL_DYNAMIC_PRIV_FIELD_HOST]->store(
+  table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_HOST]->store(
       auth_id.second.str, auth_id.second.length, system_charset_info);
-  table->field[MYSQL_DYNAMIC_PRIV_FIELD_USER]->store(
+  table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_USER]->store(
       auth_id.first.str, auth_id.first.length, system_charset_info);
-  table->field[MYSQL_DYNAMIC_PRIV_FIELD_PRIV]->store(
+  table->field[HOTDBENGINE_DYNAMIC_PRIV_FIELD_PRIV]->store(
       privilege.str, privilege.length, system_charset_info);
   key_copy(user_key, table->record[0], table->key_info,
            table->key_info->key_length);
