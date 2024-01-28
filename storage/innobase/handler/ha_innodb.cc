@@ -24081,6 +24081,199 @@ static MYSQL_SYSVAR_ULONG(
     1,                     /* Minimum value */
     5000, 0);              /* Maximum value */
 //stage 4
+#ifdef UNIV_DEBUG
+static MYSQL_SYSVAR_BOOL(hdbe_background_drop_list_empty,
+                         innodb_background_drop_list_empty, PLUGIN_VAR_OPCMDARG,
+                         "Wait for the background drop list to become empty",
+                         nullptr, wait_background_drop_list_empty, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_purge_run_now, innodb_purge_run_now,
+                         PLUGIN_VAR_OPCMDARG, "Set purge state to RUN", nullptr,
+                         purge_run_now_set, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_purge_stop_now, innodb_purge_stop_now,
+                         PLUGIN_VAR_OPCMDARG, "Set purge state to STOP",
+                         nullptr, purge_stop_now_set, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_log_flush_now, innodb_log_flush_now,
+                         PLUGIN_VAR_OPCMDARG,
+                         "Force flush of redo up to current lsn", nullptr,
+                         log_flush_now_set, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_log_checkpoint_now, innodb_log_checkpoint_now,
+                         PLUGIN_VAR_OPCMDARG, "Force sharp checkpoint now",
+                         nullptr, checkpoint_now_set, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_log_checkpoint_fuzzy_now,
+                         innodb_log_checkpoint_fuzzy_now, PLUGIN_VAR_OPCMDARG,
+                         "Force fuzzy checkpoint now", nullptr,
+                         checkpoint_fuzzy_now_set, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_checkpoint_disabled, srv_checkpoint_disabled,
+                         PLUGIN_VAR_OPCMDARG, "Disable checkpoints", nullptr,
+                         checkpoint_disabled_update, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_buf_flush_list_now, innodb_buf_flush_list_now,
+                         PLUGIN_VAR_OPCMDARG, "Force dirty page flush now",
+                         nullptr, buf_flush_list_now_set, false);
+
+static MYSQL_SYSVAR_UINT(
+    hdbe_merge_threshold_set_all_debug, innodb_merge_threshold_set_all_debug,
+    PLUGIN_VAR_RQCMDARG,
+    "Override current MERGE_THRESHOLD setting for all indexes at dictionary"
+    " cache by the specified value dynamically, at the time.",
+    nullptr, innodb_merge_threshold_set_all_debug_update,
+    DICT_INDEX_MERGE_THRESHOLD_DEFAULT, 1, 50, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_semaphore_wait_timeout_debug, srv_fatal_semaphore_wait_threshold,
+    PLUGIN_VAR_RQCMDARG,
+    "Number of seconds that a semaphore can be held. If semaphore wait crosses"
+    "this value, server will crash",
+    nullptr, nullptr, 600, 25, 600, 0);
+#endif /* UNIV_DEBUG */
+
+#if defined UNIV_DEBUG || defined UNIV_PERF_DEBUG
+static MYSQL_SYSVAR_ULONG(hdbe_page_hash_locks, srv_n_page_hash_locks,
+                          PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY,
+                          "Number of rw_locks protecting buffer pool "
+                          "page_hash. Rounded up to the next power of 2",
+                          nullptr, nullptr, 16, 1, MAX_PAGE_HASH_LOCKS, 0);
+#endif /* defined UNIV_DEBUG || defined UNIV_PERF_DEBUG */
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_validate_tablespace_paths, srv_validate_tablespace_paths,
+    PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_READONLY,
+    "Enable validation of tablespace paths against the DD. (enabled by "
+    "default)."
+    " Disable with --skip-innodb-validate-tablespace-paths.",
+    nullptr, nullptr, true);
+
+static MYSQL_SYSVAR_BOOL(hdbe_use_fdatasync, srv_use_fdatasync, PLUGIN_VAR_NOCMDARG,
+                         "Use fdatasync() instead of the default fsync().",
+                         nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_status_output, srv_print_innodb_monitor,
+                         PLUGIN_VAR_OPCMDARG,
+                         "Enable InnoDB monitor output to the error log.",
+                         nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_status_output_locks, srv_print_innodb_lock_monitor,
+                         PLUGIN_VAR_OPCMDARG,
+                         "Enable InnoDB lock monitor output to the error log."
+                         " Requires innodb_status_output=ON.",
+                         nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_print_all_deadlocks, srv_print_all_deadlocks, PLUGIN_VAR_OPCMDARG,
+    "Print all deadlocks to MySQL error log (off by default)", nullptr, nullptr,
+    false);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_cmp_per_index_enabled, srv_cmp_per_index_enabled, PLUGIN_VAR_OPCMDARG,
+    "Enable INFORMATION_SCHEMA.innodb_cmp_per_index,"
+    " may have negative impact on performance (off by default)",
+    nullptr, innodb_cmp_per_index_update, false);
+
+static MYSQL_SYSVAR_ULONGLONG(
+    hdbe_max_undo_log_size, srv_max_undo_tablespace_size, PLUGIN_VAR_OPCMDARG,
+    "Maximum size of an UNDO tablespace in MB (If an UNDO tablespace grows"
+    " beyond this size it will be truncated in due course). ",
+    nullptr, nullptr, 1024 * 1024 * 1024L, 10 * 1024 * 1024L, ~0ULL, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_purge_rseg_truncate_frequency, srv_purge_rseg_truncate_frequency,
+    PLUGIN_VAR_OPCMDARG,
+    "Dictates rate at which UNDO records are purged. Value N means"
+    " purge rollback segment(s) on every Nth iteration of purge invocation",
+    nullptr, nullptr, 128, 1, 128, 0);
+
+static MYSQL_SYSVAR_BOOL(hdbe_undo_log_truncate, srv_undo_log_truncate,
+                         PLUGIN_VAR_OPCMDARG,
+                         "Enable or Disable Truncate of UNDO tablespace.",
+                         nullptr, nullptr, true);
+
+static MYSQL_SYSVAR_BOOL(hdbe_undo_log_encrypt, srv_undo_log_encrypt,
+                         PLUGIN_VAR_OPCMDARG,
+                         "Enable or disable Encrypt of UNDO tablespace.",
+                         validate_innodb_undo_log_encrypt, nullptr, false);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_rollback_segments, srv_rollback_segments, PLUGIN_VAR_OPCMDARG,
+    "Number of rollback segments per tablespace. This applies to the system"
+    " tablespace, the temporary tablespace & any undo tablespace.",
+    nullptr, innodb_rollback_segments_update,
+    FSP_MAX_ROLLBACK_SEGMENTS,     /* Default setting */
+    1,                             /* Minimum value */
+    FSP_MAX_ROLLBACK_SEGMENTS, 0); /* Maximum value */
+
+static MYSQL_SYSVAR_STR(
+    hdbe_undo_directory, srv_undo_dir,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY | PLUGIN_VAR_NOPERSIST,
+    "Directory where undo tablespace files live, this path can be absolute.",
+    nullptr, nullptr, nullptr);
+
+static MYSQL_SYSVAR_STR(
+    hdbe_temp_tablespaces_dir, ibt::srv_temp_dir,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY | PLUGIN_VAR_NOPERSIST,
+    "Directory where temp tablespace files live, this path can be absolute.",
+    nullptr, nullptr, nullptr);
+
+static MYSQL_SYSVAR_ULONG(hdbe_undo_tablespaces, srv_undo_tablespaces,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_NOPERSIST,
+                          "Number of undo tablespaces to use. (deprecated)",
+                          nullptr, innodb_undo_tablespaces_update,
+                          FSP_IMPLICIT_UNDO_TABLESPACES, /* Default setting */
+                          FSP_MIN_UNDO_TABLESPACES,      /* Minimum value */
+                          FSP_MAX_UNDO_TABLESPACES, 0);  /* Maximum value */
+
+static MYSQL_SYSVAR_ULONG(hdbe_sync_array_size, srv_sync_array_size,
+                          PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY,
+                          "Size of the mutex/lock wait array.", nullptr,
+                          nullptr, 1, /* Default setting */
+                          1,          /* Minimum value */
+                          1024, 0);   /* Maximum value */
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_compression_failure_threshold_pct, zip_failure_threshold_pct,
+    PLUGIN_VAR_OPCMDARG,
+    "If the compression failure rate of a table is greater than this number"
+    " more padding is added to the pages to reduce the failures. A value of"
+    " zero implies no padding",
+    nullptr, nullptr, 5, 0, 100, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_compression_pad_pct_max, zip_pad_max, PLUGIN_VAR_OPCMDARG,
+    "Percentage of empty space on a data page that can be reserved"
+    " to make the page compressible.",
+    nullptr, nullptr, 50, 0, 75, 0);
+
+static MYSQL_SYSVAR_ENUM(
+    hdbe_default_row_format, innodb_default_row_format, PLUGIN_VAR_RQCMDARG,
+    "The default ROW FORMAT for all innodb tables created without explicit"
+    " ROW_FORMAT. Possible values are REDUNDANT, COMPACT, and DYNAMIC."
+    " The ROW_FORMAT value COMPRESSED is not allowed",
+    nullptr, nullptr, DEFAULT_ROW_FORMAT_DYNAMIC,
+    &innodb_default_row_format_typelib);
+
+static MYSQL_SYSVAR_STR(
+    hdbe_redo_log_archive_dirs, meb::redo_log_archive_dirs,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_MEMALLOC,
+    "Limit the location of the redo log archive to the semicolon "
+    "separated list of labeled directories",
+    /*validate_func*/ meb::validate_redo_log_archive_dirs,
+    /*update_func*/ nullptr, /*default*/ nullptr);
+
+static MYSQL_SYSVAR_BOOL(hdbe_redo_log_encrypt, srv_redo_log_encrypt,
+                         PLUGIN_VAR_OPCMDARG,
+                         "Enable or disable Encryption of REDO tablespace.",
+                         validate_innodb_redo_log_encrypt, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_print_ddl_logs, srv_print_ddl_logs, PLUGIN_VAR_OPCMDARG,
+    "Print all DDl logs to MySQL error log (off by default)", nullptr, nullptr,
+    false);
+//stage 5
 
 static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(api_trx_level),
@@ -24466,6 +24659,42 @@ static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(hdbe_monitor_reset_all),
     MYSQL_SYSVAR(hdbe_purge_threads),
     MYSQL_SYSVAR(hdbe_purge_batch_size),
+#ifdef UNIV_DEBUG
+    MYSQL_SYSVAR(hdbe_background_drop_list_empty),
+    MYSQL_SYSVAR(hdbe_purge_run_now),
+    MYSQL_SYSVAR(hdbe_purge_stop_now),
+    MYSQL_SYSVAR(hdbe_log_flush_now),
+    MYSQL_SYSVAR(hdbe_log_checkpoint_now),
+    MYSQL_SYSVAR(hdbe_log_checkpoint_fuzzy_now),
+    MYSQL_SYSVAR(hdbe_checkpoint_disabled),
+    MYSQL_SYSVAR(hdbe_buf_flush_list_now),
+    MYSQL_SYSVAR(hdbe_merge_threshold_set_all_debug),
+    MYSQL_SYSVAR(hdbe_semaphore_wait_timeout_debug),
+#endif /* UNIV_DEBUG */
+#if defined UNIV_DEBUG || defined UNIV_PERF_DEBUG
+    MYSQL_SYSVAR(hdbe_page_hash_locks),
+#endif /* defined UNIV_DEBUG || defined UNIV_PERF_DEBUG */
+    MYSQL_SYSVAR(hdbe_validate_tablespace_paths),
+    MYSQL_SYSVAR(hdbe_use_fdatasync),
+    MYSQL_SYSVAR(hdbe_status_output),
+    MYSQL_SYSVAR(hdbe_status_output_locks),
+    MYSQL_SYSVAR(hdbe_print_all_deadlocks),
+    MYSQL_SYSVAR(hdbe_cmp_per_index_enabled),
+    MYSQL_SYSVAR(hdbe_max_undo_log_size),
+    MYSQL_SYSVAR(hdbe_purge_rseg_truncate_frequency),
+    MYSQL_SYSVAR(hdbe_undo_log_truncate),
+    MYSQL_SYSVAR(hdbe_undo_log_encrypt),
+    MYSQL_SYSVAR(hdbe_rollback_segments),
+    MYSQL_SYSVAR(hdbe_undo_directory),
+    MYSQL_SYSVAR(hdbe_temp_tablespaces_dir),
+    MYSQL_SYSVAR(hdbe_undo_tablespaces),
+    MYSQL_SYSVAR(hdbe_sync_array_size),
+    MYSQL_SYSVAR(hdbe_compression_failure_threshold_pct),
+    MYSQL_SYSVAR(hdbe_compression_pad_pct_max),
+    MYSQL_SYSVAR(hdbe_default_row_format),
+    MYSQL_SYSVAR(hdbe_redo_log_archive_dirs),
+    MYSQL_SYSVAR(hdbe_redo_log_encrypt),
+    MYSQL_SYSVAR(hdbe_print_ddl_logs),
     nullptr};
 
 mysql_declare_plugin(innobase){
