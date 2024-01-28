@@ -23132,6 +23132,466 @@ char **thd_innodb_interpreter(THD *thd) {
 }
 #endif /* UNIV_DEBUG */
 
+static MYSQL_SYSVAR_ULONG(hdbe_api_trx_level, ib_trx_level_setting,
+                          PLUGIN_VAR_OPCMDARG,
+                          "InnoDB API transaction isolation level", nullptr,
+                          nullptr, 0, /* Default setting */
+                          0,          /* Minimum value */
+                          3, 0);      /* Maximum value */
+
+static MYSQL_SYSVAR_ULONG(hdbe_api_bk_commit_interval, ib_bk_commit_interval,
+                          PLUGIN_VAR_OPCMDARG,
+                          "Background commit interval in seconds", nullptr,
+                          nullptr, 5,             /* Default setting */
+                          1,                      /* Minimum value */
+                          1024 * 1024 * 1024, 0); /* Maximum value */
+
+static MYSQL_SYSVAR_ULONG(hdbe_autoextend_increment,
+                          sys_tablespace_auto_extend_increment,
+                          PLUGIN_VAR_RQCMDARG,
+                          "Data file autoextend increment in megabytes",
+                          nullptr, nullptr, 64L, 1L, 1000L, 0);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_dedicated_server, srv_dedicated_server,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_NOPERSIST | PLUGIN_VAR_READONLY,
+    "Automatically scale innodb_buffer_pool_size and innodb_redo_log_capacity "
+    "based on system memory. Also set innodb_flush_method=O_DIRECT_NO_FSYNC, "
+    "if supported",
+    nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_LONGLONG(hdbe_buffer_pool_size, srv_buf_pool_curr_size,
+                             PLUGIN_VAR_RQCMDARG |
+                                 PLUGIN_VAR_PERSIST_AS_READ_ONLY,
+                             "The size of the memory buffer InnoDB uses to "
+                             "cache data and indexes of its tables.",
+                             nullptr, innodb_buffer_pool_size_update,
+                             static_cast<longlong>(srv_buf_pool_def_size),
+                             static_cast<longlong>(srv_buf_pool_min_size),
+                             longlong{srv_buf_pool_max_size}, 1024 * 1024L);
+
+static MYSQL_SYSVAR_ULONGLONG(
+    hdbe_buffer_pool_chunk_size, srv_buf_pool_chunk_unit,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "Size of a single memory chunk within each buffer pool instance"
+    " for resizing buffer pool. Online buffer pool resizing happens"
+    " at this granularity.",
+    nullptr, nullptr, 128 * 1024 * 1024, ulonglong{srv_buf_pool_chunk_unit_min},
+    ulonglong{srv_buf_pool_chunk_unit_max},
+    ulonglong{srv_buf_pool_chunk_unit_blk_sz});
+
+static MYSQL_SYSVAR_ULONG(hdbe_buffer_pool_instances, srv_buf_pool_instances,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                          "Number of buffer pool instances, set to higher "
+                          "value on high-end machines to increase scalability",
+                          nullptr, nullptr, srv_buf_pool_instances_default, 0,
+                          MAX_BUFFER_POOLS, 0);
+
+static MYSQL_SYSVAR_STR(
+    hdbe_buffer_pool_filename, srv_buf_dump_filename,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_MEMALLOC,
+    "Filename to/from which to dump/load the InnoDB buffer pool",
+    innodb_srv_buf_dump_filename_validate, nullptr,
+    SRV_BUF_DUMP_FILENAME_DEFAULT);
+
+static MYSQL_SYSVAR_BOOL(hdbe_buffer_pool_dump_now, innodb_buffer_pool_dump_now,
+                         PLUGIN_VAR_RQCMDARG,
+                         "Trigger an immediate dump of the buffer pool into a "
+                         "file named @@innodb_buffer_pool_filename",
+                         nullptr, buffer_pool_dump_now, false);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_buffer_pool_dump_at_shutdown, srv_buffer_pool_dump_at_shutdown,
+    PLUGIN_VAR_RQCMDARG,
+    "Dump the buffer pool into a file named @@innodb_buffer_pool_filename",
+    nullptr, nullptr, true);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_buffer_pool_in_core_file, srv_buffer_pool_in_core_file, PLUGIN_VAR_NOCMDARG,
+    "This option has no effect if @@core_file is OFF. "
+    "If @@core_file is ON, and this option is OFF, then the core dump file will"
+    " be generated only if it is possible to exclude buffer pool from it. "
+    "As soon as it will be determined that such exclusion is impossible a "
+    "warning will be emitted and @@core_file will be set to OFF to prevent "
+    "generating a core dump. "
+    "If this option is enabled (which is the default), then core dumping "
+    "logic will not be affected. ",
+    nullptr, innodb_srv_buffer_pool_in_core_file_update, true);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_buffer_pool_dump_pct, srv_buf_pool_dump_pct, PLUGIN_VAR_RQCMDARG,
+    "Dump only the hottest N% of each buffer pool, defaults to 25", nullptr,
+    nullptr, 25, 1, 100, 0);
+
+#ifdef UNIV_DEBUG
+static MYSQL_SYSVAR_STR(hdbe_buffer_pool_evict, srv_buffer_pool_evict,
+                        PLUGIN_VAR_RQCMDARG, "Evict pages from the buffer pool",
+                        nullptr, innodb_buffer_pool_evict_update, "");
+#endif /* UNIV_DEBUG */
+
+static MYSQL_SYSVAR_BOOL(hdbe_buffer_pool_load_now, innodb_buffer_pool_load_now,
+                         PLUGIN_VAR_RQCMDARG,
+                         "Trigger an immediate load of the buffer pool from a "
+                         "file named @@innodb_buffer_pool_filename",
+                         nullptr, buffer_pool_load_now, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_buffer_pool_load_abort, innodb_buffer_pool_load_abort,
+                         PLUGIN_VAR_RQCMDARG,
+                         "Abort a currently running load of the buffer pool",
+                         nullptr, buffer_pool_load_abort, false);
+
+/* there is no point in changing this during runtime, thus readonly */
+static MYSQL_SYSVAR_BOOL(
+    hdbe_buffer_pool_load_at_startup, srv_buffer_pool_load_at_startup,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY | PLUGIN_VAR_NOPERSIST,
+    "Load the buffer pool from a file named @@innodb_buffer_pool_filename",
+    nullptr, nullptr, true);
+
+static MYSQL_SYSVAR_ULONG(hdbe_lru_scan_depth, srv_LRU_scan_depth,
+                          PLUGIN_VAR_RQCMDARG,
+                          "How deep to scan LRU to keep it clean", nullptr,
+                          nullptr, 1024, 100, ~0UL, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_flush_neighbors, srv_flush_neighbors,
+                          PLUGIN_VAR_OPCMDARG,
+                          "Set to 0 (don't flush neighbors from buffer pool),"
+                          " 1 (flush contiguous neighbors from buffer pool)"
+                          " or 2 (flush neighbors from buffer pool),"
+                          " when flushing a block",
+                          nullptr, nullptr, 0, 0, 2, 0);
+
+static MYSQL_SYSVAR_ENUM(
+    hdbe_checksum_algorithm, srv_checksum_algorithm, PLUGIN_VAR_RQCMDARG,
+    "The algorithm InnoDB uses for page checksumming. Possible values are"
+    " CRC32 (hardware accelerated if the CPU supports it)"
+    " write crc32, allow any of the other checksums to match when reading;"
+    " STRICT_CRC32"
+    " write crc32, do not allow other algorithms to match when reading;"
+    " INNODB"
+    " write a software calculated checksum, allow any other checksums"
+    " to match when reading;"
+    " STRICT_INNODB"
+    " write a software calculated checksum, do not allow other algorithms"
+    " to match when reading;"
+    " NONE"
+    " write a constant magic number, do not do any checksum verification"
+    " when reading;"
+    " STRICT_NONE"
+    " write a constant magic number, do not allow values other than that"
+    " magic number when reading;"
+    " Files updated when this option is set to crc32 or strict_crc32 will"
+    " not be readable by MySQL versions older than 5.6.3",
+    nullptr, nullptr, SRV_CHECKSUM_ALGORITHM_CRC32,
+    &innodb_checksum_algorithm_typelib);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_log_checksums, srv_log_checksums, PLUGIN_VAR_RQCMDARG,
+    "Whether to compute and require checksums for InnoDB redo log blocks",
+    nullptr, innodb_log_checksums_update, true);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_commit_concurrency, innobase_commit_concurrency, PLUGIN_VAR_RQCMDARG,
+    "Helps in performance tuning in heavily concurrent environments.",
+    innobase_commit_concurrency_validate, nullptr, 0, 0, 1000, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_concurrency_tickets, srv_n_free_tickets_to_enter,
+                          PLUGIN_VAR_RQCMDARG,
+                          "Number of times a thread is allowed to enter InnoDB "
+                          "within the same SQL query after it has once got the "
+                          "ticket",
+                          nullptr, nullptr, 5000L, 1L, UINT_MAX, 0);
+
+static MYSQL_SYSVAR_UINT(
+    hdbe_compression_level, page_zip_level, PLUGIN_VAR_RQCMDARG,
+    "Compression level used for compressed row format.  0 is no compression"
+    ", 1 is fastest, 9 is best compression and default is 6.",
+    nullptr, nullptr, DEFAULT_COMPRESSION_LEVEL, 0, 9, 0);
+
+static MYSQL_THDVAR_ULONG(hdbe_ddl_buffer_size, PLUGIN_VAR_RQCMDARG,
+                          "Maximum size of memory to use (in bytes) for DDL.",
+                          nullptr, nullptr, 1048576, /* Default. */
+                          65536,                     /* Minimum. */
+                          4294967295, 0);            /* Maximum. */
+
+static MYSQL_THDVAR_ULONG(hdbe_ddl_threads, PLUGIN_VAR_RQCMDARG,
+                          "Maximum number of threads to use for  DDL.", nullptr,
+                          nullptr, 4, /* Default. */
+                          1,          /* Minimum. */
+                          64, 0);     /* Maximum. */
+
+static MYSQL_SYSVAR_STR(hdbe_data_file_path, innobase_data_file_path,
+                        PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY |
+                            PLUGIN_VAR_NOPERSIST,
+                        "Path to individual files and their sizes.", nullptr,
+                        nullptr, (char *)"ibdata1:12M:autoextend");
+
+static MYSQL_SYSVAR_STR(hdbe_temp_data_file_path, innobase_temp_data_file_path,
+                        PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY |
+                            PLUGIN_VAR_NOPERSIST,
+                        "Path to files and their sizes making temp-tablespace.",
+                        nullptr, nullptr, (char *)"ibtmp1:12M:autoextend");
+
+static MYSQL_SYSVAR_STR(hdbe_data_home_dir, innobase_data_home_dir,
+                        PLUGIN_VAR_READONLY | PLUGIN_VAR_NOPERSIST,
+                        "The common part for InnoDB table spaces.", nullptr,
+                        nullptr, nullptr);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_extend_and_initialize, tbsp_extend_and_initialize, PLUGIN_VAR_NOCMDARG,
+    "Initialize the allocated space by writing zeros (enabled by default).",
+    nullptr, innodb_extend_and_initialize_update, true);
+
+static MYSQL_SYSVAR_ENUM(
+    hdbe_doublewrite, dblwr::g_mode, PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_NOPERSIST,
+    "Enable InnoDB doublewrite buffer (enabled by default)."
+    " Disable with --skip-innodb-doublewrite.",
+    nullptr, doublewrite_update, dblwr::Mode::ON, &innodb_doublewrite_typelib);
+
+static MYSQL_SYSVAR_STR(
+    hdbe_doublewrite_dir, innobase_doublewrite_dir, PLUGIN_VAR_READONLY,
+    "Use a separate directory for the doublewrite buffer files, ", nullptr, nullptr,
+    nullptr);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_doublewrite_batch_size, dblwr::batch_size,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "Number of double write pages to write in a batch", nullptr, nullptr,
+    0, 0, 256, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_doublewrite_files, dblwr::n_files,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "Number of double write files", nullptr, nullptr, 0, 0, 256, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_doublewrite_pages, dblwr::n_pages,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "Number of double write pages per thread" , nullptr, nullptr, 0, 0, 512, 0);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_stats_include_delete_marked, srv_stats_include_delete_marked,
+    PLUGIN_VAR_OPCMDARG,
+    "Include delete marked records when calculating persistent statistics",
+    nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_api_enable_binlog, ib_binlog_enabled,
+    PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_READONLY,
+    "Enable binlog for applications direct access InnoDB through InnoDB APIs",
+    nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_api_enable_mdl, ib_mdl_enabled, PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_READONLY,
+    "Enable MDL for applications direct access InnoDB through InnoDB APIs",
+    nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_api_disable_rowlock, ib_disable_row_lock,
+    PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_READONLY,
+    "Disable row lock when direct access InnoDB through InnoDB APIs", nullptr,
+    nullptr, false);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_fast_shutdown, srv_fast_shutdown, PLUGIN_VAR_OPCMDARG,
+    "Speeds up the shutdown process of the InnoDB storage engine. Possible"
+    " values are 0, 1 (faster) or 2 (fastest - crash-like).",
+    nullptr, nullptr, 1, 0, 2, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_read_io_threads, srv_n_read_io_threads,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                          "Number of background read I/O threads in InnoDB.",
+                          nullptr, nullptr, 4, 1, 64, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_write_io_threads, srv_n_write_io_threads,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                          "Number of background write I/O threads in InnoDB.",
+                          nullptr, nullptr, 4, 1, 64, 0);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_file_per_table, srv_file_per_table, PLUGIN_VAR_NOCMDARG,
+    "Stores each InnoDB table to an .ibd file in the database dir.", nullptr,
+    nullptr, true);
+
+static MYSQL_SYSVAR_UINT(hdbe_flush_log_at_timeout, srv_flush_log_at_timeout,
+                         PLUGIN_VAR_OPCMDARG,
+                         "Write and flush logs every (n) second.", nullptr,
+                         nullptr, 1, 0, 2700, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_flush_log_at_trx_commit, srv_flush_log_at_trx_commit,
+                          PLUGIN_VAR_OPCMDARG,
+                          "Set to 0 (write and flush once per second),"
+                          " 1 (write and flush at each commit),"
+                          " or 2 (write at commit, flush once per second).",
+                          nullptr, nullptr, 1, 0, 2, 0);
+
+static MYSQL_SYSVAR_ENUM(hdbe_flush_method, innodb_flush_method,
+                         PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                         "With which method to flush data", nullptr, nullptr, 0,
+                         &innodb_flush_method_typelib);
+
+static MYSQL_SYSVAR_ULONG(hdbe_force_recovery, srv_force_recovery,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                          "Helps to save your data in case the disk image of "
+                          "the database becomes corrupt.",
+                          nullptr, nullptr, 0, 0, 6, 0);
+
+#ifdef UNIV_DEBUG
+static MYSQL_SYSVAR_ULONG(hdbe_force_recovery_crash, srv_force_recovery_crash,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                          "Kills the server during crash recovery.", nullptr,
+                          nullptr, 0, 0, 100, 0);
+#endif /* UNIV_DEBUG */
+
+static MYSQL_SYSVAR_LONG(hdbe_fill_factor, ddl::fill_factor, PLUGIN_VAR_RQCMDARG,
+                         "Percentage of B-tree page filled during bulk insert",
+                         nullptr, nullptr, 100, 10, 100, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_ft_cache_size, fts_max_cache_size,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                          "InnoDB Fulltext search cache size in bytes", nullptr,
+                          nullptr, 8000000, 1600000, 80000000, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_ft_total_cache_size, fts_max_total_cache_size,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "Total memory allocated for InnoDB Fulltext Search cache", nullptr, nullptr,
+    640000000, 32000000, 1600000000, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_ft_result_cache_limit, fts_result_cache_limit, PLUGIN_VAR_RQCMDARG,
+    "InnoDB Fulltext search query result cache limit in bytes", nullptr,
+    nullptr, 2000000000L, 1000000L, 4294967295UL, 0);
+
+static MYSQL_THDVAR_BOOL(hdbe_ft_enable_stopword, PLUGIN_VAR_OPCMDARG,
+                         "Create FTS index with stopword.", nullptr, nullptr,
+                         /* default */ true);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_ft_max_token_size, fts_max_token_size,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "InnoDB Fulltext search maximum token size in characters", nullptr, nullptr,
+    FTS_MAX_WORD_LEN_IN_CHAR, 10, FTS_MAX_WORD_LEN_IN_CHAR, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_ft_min_token_size, fts_min_token_size,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "InnoDB Fulltext search minimum token size in characters", nullptr, nullptr,
+    3, 0, 16, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_ft_num_word_optimize, fts_num_word_optimize,
+                          PLUGIN_VAR_OPCMDARG,
+                          "InnoDB Fulltext search number of words to optimize "
+                          "for each optimize table call ",
+                          nullptr, nullptr, 2000, 1000, 10000, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_ft_sort_pll_degree, ddl::fts_parser_threads,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                          "InnoDB Fulltext search parallel sort degree, will "
+                          "round up to nearest power of 2 number",
+                          nullptr, nullptr, 2, 1, 16, 0);
+
+static MYSQL_SYSVAR_BOOL(hdbe_force_load_corrupted, srv_load_corrupted,
+                         PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_READONLY |
+                             PLUGIN_VAR_NOPERSIST,
+                         "Force InnoDB to load metadata of corrupted table.",
+                         nullptr, nullptr, false);
+
+static MYSQL_THDVAR_ULONG(hdbe_lock_wait_timeout, PLUGIN_VAR_RQCMDARG,
+                          "Timeout in seconds an InnoDB transaction may wait "
+                          "for a lock before being rolled back. Values above "
+                          "100000000 disable the timeout.",
+                          nullptr, nullptr, 50, 1, 1024 * 1024 * 1024, 0);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_deadlock_detect, innobase_deadlock_detect, PLUGIN_VAR_NOCMDARG,
+    "Enable/disable InnoDB deadlock detector (default ON)."
+    " if set to OFF, deadlock detection is skipped,"
+    " and we rely on innodb_lock_wait_timeout in case of deadlock.",
+    nullptr, innobase_deadlock_detect_update, true);
+
+static MYSQL_SYSVAR_ULONG(hdbe_page_size, srv_page_size,
+                          PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY |
+                              PLUGIN_VAR_NOPERSIST,
+                          "Page size to use for all InnoDB tablespaces.",
+                          nullptr, nullptr, UNIV_PAGE_SIZE_DEF,
+                          UNIV_PAGE_SIZE_MIN, UNIV_PAGE_SIZE_MAX, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_log_buffer_size, srv_log_buffer_size, PLUGIN_VAR_RQCMDARG,
+    "The size of the buffer which InnoDB uses to write log to the log files"
+    " on disk.",
+    nullptr, innodb_log_buffer_size_update, INNODB_LOG_BUFFER_SIZE_DEFAULT,
+    INNODB_LOG_BUFFER_SIZE_MIN, INNODB_LOG_BUFFER_SIZE_MAX, 1024);
+
+static MYSQL_SYSVAR_ULONGLONG(
+    hdbe_log_file_size, srv_log_file_size, PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "Size of each log file before upgrading to 8.0.30. Deprecated.", nullptr,
+    nullptr, 48 * 1024 * 1024L, 4 * 1024 * 1024L, ULLONG_MAX, 1024 * 1024L);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_log_files_in_group, srv_log_n_files,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "Number of log files before upgrading to 8.0.30. Deprecated.", nullptr,
+    nullptr, 2, 2, 100, 0);
+
+static MYSQL_SYSVAR_ULONGLONG(
+    hdbe_redo_log_capacity, srv_redo_log_capacity,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_PERSIST_AS_READ_ONLY,
+    "Limitation for total size of redo log files on disk (expressed in bytes).",
+    nullptr, innodb_redo_log_capacity_update, 100 * 1024 * 1024,
+    LOG_CAPACITY_MIN, LOG_CAPACITY_MAX, MB);
+
+#ifdef UNIV_DEBUG_DEDICATED
+static MYSQL_SYSVAR_ULONG(
+    hdbe_debug_sys_mem_size, srv_debug_system_mem_size,
+    PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "System memory size. It's for debuging dedicated server.", NULL, NULL,
+    48 * 1024 * 1024L, 4 * 1024 * 1024L, ULLONG_MAX, 1024 * 1024L);
+#endif /* UNIV_DEBUG_DEDICATED */
+
+static MYSQL_SYSVAR_ULONG(hdbe_log_write_ahead_size, srv_log_write_ahead_size,
+                          PLUGIN_VAR_RQCMDARG,
+                          "Log write ahead unit size to avoid read-on-write,"
+                          " it should match the OS cache block IO size.",
+                          nullptr, innodb_log_write_ahead_size_update,
+                          INNODB_LOG_WRITE_AHEAD_SIZE_DEFAULT,
+                          INNODB_LOG_WRITE_AHEAD_SIZE_MIN,
+                          INNODB_LOG_WRITE_AHEAD_SIZE_MAX,
+                          OS_FILE_LOG_BLOCK_SIZE);
+
+static MYSQL_SYSVAR_STR(hdbe_log_group_home_dir, srv_log_group_home_dir,
+                        PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY |
+                            PLUGIN_VAR_NOPERSIST,
+                        "Path to InnoDB log files.", nullptr, nullptr, nullptr);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_log_writer_threads, srv_log_writer_threads, PLUGIN_VAR_RQCMDARG,
+    "Whether the log writer threads should be activated (ON), or write/flush "
+    "of the redo log should be done by each thread individually (OFF).",
+    nullptr, innodb_log_writer_threads_update, true);
+
+static MYSQL_SYSVAR_UINT(
+    hdbe_log_spin_cpu_abs_lwm, srv_log_spin_cpu_abs_lwm, PLUGIN_VAR_RQCMDARG,
+    "Minimum value of cpu time for which spin-delay is used."
+    " Expressed in percentage of single cpu core.",
+    nullptr, nullptr, INNODB_LOG_SPIN_CPU_ABS_LWM_DEFAULT, 0, UINT_MAX, 0);
+
+static MYSQL_SYSVAR_UINT(
+    hdbe_log_spin_cpu_pct_hwm, srv_log_spin_cpu_pct_hwm, PLUGIN_VAR_RQCMDARG,
+    "Maximum value of cpu time for which spin-delay is used."
+    " Expressed in percentage of all cpu cores.",
+    nullptr, nullptr, INNODB_LOG_SPIN_CPU_PCT_HWM_DEFAULT, 0, 100, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_log_wait_for_flush_spin_hwm, srv_log_wait_for_flush_spin_hwm,
+    PLUGIN_VAR_RQCMDARG,
+    "Maximum value of average log flush time for which spin-delay is used."
+    " When flushing takes longer, user threads no longer spin when waiting for"
+    "flushed redo. Expressed in microseconds.",
+    nullptr, nullptr, INNODB_LOG_WAIT_FOR_FLUSH_SPIN_HWM_DEFAULT, 0, ULONG_MAX,
+    0);
+//stage 1
+
 static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(api_trx_level),
     MYSQL_SYSVAR(api_bk_commit_interval),
@@ -23353,6 +23813,84 @@ static SYS_VAR *innobase_system_variables[] = {
 #endif /* UNIV_DEBUG */
     MYSQL_SYSVAR(parallel_read_threads),
     MYSQL_SYSVAR(segment_reserve_factor),
+    /* hotdb engine vars*/
+    MYSQL_SYSVAR(hdbe_api_trx_level),
+    MYSQL_SYSVAR(hdbe_api_bk_commit_interval),
+    MYSQL_SYSVAR(hdbe_autoextend_increment),
+    MYSQL_SYSVAR(hdbe_dedicated_server),
+    MYSQL_SYSVAR(hdbe_buffer_pool_size),
+    MYSQL_SYSVAR(hdbe_buffer_pool_chunk_size),
+    MYSQL_SYSVAR(hdbe_buffer_pool_instances),
+    MYSQL_SYSVAR(hdbe_buffer_pool_filename),
+    MYSQL_SYSVAR(hdbe_buffer_pool_dump_now),
+    MYSQL_SYSVAR(hdbe_buffer_pool_dump_at_shutdown),
+    MYSQL_SYSVAR(hdbe_buffer_pool_in_core_file),
+    MYSQL_SYSVAR(hdbe_buffer_pool_dump_pct),
+#ifdef UNIV_DEBUG
+    MYSQL_SYSVAR(hdbe_buffer_pool_evict),
+#endif /* UNIV_DEBUG */
+    MYSQL_SYSVAR(hdbe_buffer_pool_load_now),
+    MYSQL_SYSVAR(hdbe_buffer_pool_load_abort),
+    MYSQL_SYSVAR(hdbe_buffer_pool_load_at_startup),
+    MYSQL_SYSVAR(hdbe_lru_scan_depth),
+    MYSQL_SYSVAR(hdbe_flush_neighbors),
+    MYSQL_SYSVAR(hdbe_checksum_algorithm),
+    MYSQL_SYSVAR(hdbe_log_checksums),
+    MYSQL_SYSVAR(hdbe_commit_concurrency),
+    MYSQL_SYSVAR(hdbe_concurrency_tickets),
+    MYSQL_SYSVAR(hdbe_compression_level),
+    MYSQL_SYSVAR(hdbe_ddl_buffer_size),
+    MYSQL_SYSVAR(hdbe_ddl_threads),
+    MYSQL_SYSVAR(hdbe_data_file_path),
+    MYSQL_SYSVAR(hdbe_temp_data_file_path),
+    MYSQL_SYSVAR(hdbe_data_home_dir),
+    MYSQL_SYSVAR(hdbe_extend_and_initialize),
+    MYSQL_SYSVAR(hdbe_doublewrite),
+    MYSQL_SYSVAR(hdbe_doublewrite_dir),
+    MYSQL_SYSVAR(hdbe_doublewrite_batch_size),
+    MYSQL_SYSVAR(hdbe_doublewrite_files),
+    MYSQL_SYSVAR(hdbe_doublewrite_pages),
+    MYSQL_SYSVAR(hdbe_stats_include_delete_marked),
+    MYSQL_SYSVAR(hdbe_api_enable_binlog),
+    MYSQL_SYSVAR(hdbe_api_enable_mdl),
+    MYSQL_SYSVAR(hdbe_api_disable_rowlock),
+    MYSQL_SYSVAR(hdbe_fast_shutdown),
+    MYSQL_SYSVAR(hdbe_read_io_threads),
+    MYSQL_SYSVAR(hdbe_write_io_threads),
+    MYSQL_SYSVAR(hdbe_file_per_table),
+    MYSQL_SYSVAR(hdbe_flush_log_at_timeout),
+    MYSQL_SYSVAR(hdbe_flush_log_at_trx_commit),
+    MYSQL_SYSVAR(hdbe_flush_method),
+    MYSQL_SYSVAR(hdbe_force_recovery),
+#ifdef UNIV_DEBUG
+    MYSQL_SYSVAR(hdbe_force_recovery_crash),
+#endif /* UNIV_DEBUG */
+    MYSQL_SYSVAR(hdbe_fill_factor),
+    MYSQL_SYSVAR(hdbe_ft_cache_size),
+    MYSQL_SYSVAR(hdbe_ft_total_cache_size),
+    MYSQL_SYSVAR(hdbe_ft_result_cache_limit),
+    MYSQL_SYSVAR(hdbe_ft_enable_stopword),
+    MYSQL_SYSVAR(hdbe_ft_max_token_size),
+    MYSQL_SYSVAR(hdbe_ft_min_token_size),
+    MYSQL_SYSVAR(hdbe_ft_num_word_optimize),
+    MYSQL_SYSVAR(hdbe_ft_sort_pll_degree),
+    MYSQL_SYSVAR(hdbe_force_load_corrupted),
+    MYSQL_SYSVAR(hdbe_lock_wait_timeout),
+    MYSQL_SYSVAR(hdbe_deadlock_detect),
+    MYSQL_SYSVAR(hdbe_page_size),
+    MYSQL_SYSVAR(hdbe_log_buffer_size),
+    MYSQL_SYSVAR(hdbe_log_file_size),
+    MYSQL_SYSVAR(hdbe_log_files_in_group),
+    MYSQL_SYSVAR(hdbe_redo_log_capacity),
+#ifdef UNIV_DEBUG_DEDICATED
+    MYSQL_SYSVAR(hdbe_debug_sys_mem_size),
+#endif /* UNIV_DEBUG_DEDICATED */
+    MYSQL_SYSVAR(hdbe_log_write_ahead_size),
+    MYSQL_SYSVAR(hdbe_log_group_home_dir),
+    MYSQL_SYSVAR(hdbe_log_writer_threads),
+    MYSQL_SYSVAR(hdbe_log_spin_cpu_abs_lwm),
+    MYSQL_SYSVAR(hdbe_log_spin_cpu_pct_hwm),
+    MYSQL_SYSVAR(hdbe_log_wait_for_flush_spin_hwm),
     nullptr};
 
 mysql_declare_plugin(innobase){
