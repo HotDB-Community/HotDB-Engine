@@ -61,16 +61,16 @@ extern Granted_roles_graph *g_granted_roles;
 extern Default_roles *g_default_roles;
 extern Role_index_map *g_authid_to_vertex;
 
-#define MYSQL_ROLE_EDGES_FIELD_FROM_HOST 0
-#define MYSQL_ROLE_EDGES_FIELD_FROM_USER 1
-#define MYSQL_ROLE_EDGES_FIELD_TO_HOST 2
-#define MYSQL_ROLE_EDGES_FIELD_TO_USER 3
-#define MYSQL_ROLE_EDGES_FIELD_TO_WITH_ADMIN_OPT 4
+#define HOTDBENGINE_ROLE_EDGES_FIELD_FROM_HOST 0
+#define HOTDBENGINE_ROLE_EDGES_FIELD_FROM_USER 1
+#define HOTDBENGINE_ROLE_EDGES_FIELD_TO_HOST 2
+#define HOTDBENGINE_ROLE_EDGES_FIELD_TO_USER 3
+#define HOTDBENGINE_ROLE_EDGES_FIELD_TO_WITH_ADMIN_OPT 4
 
-#define MYSQL_DEFAULT_ROLE_FIELD_HOST 0
-#define MYSQL_DEFAULT_ROLE_FIELD_USER 1
-#define MYSQL_DEFAULT_ROLE_FIELD_ROLE_HOST 2
-#define MYSQL_DEFAULT_ROLE_FIELD_ROLE_USER 3
+#define HOTDBENGINE_DEFAULT_ROLE_FIELD_HOST 0
+#define HOTDBENGINE_DEFAULT_ROLE_FIELD_USER 1
+#define HOTDBENGINE_DEFAULT_ROLE_FIELD_ROLE_HOST 2
+#define HOTDBENGINE_DEFAULT_ROLE_FIELD_ROLE_USER 3
 
 bool modify_role_edges_in_table(THD *thd, TABLE *table,
                                 const Auth_id_ref &from_user,
@@ -85,16 +85,16 @@ bool modify_role_edges_in_table(THD *thd, TABLE *table,
 
   table->use_all_columns();
 
-  table->field[MYSQL_ROLE_EDGES_FIELD_FROM_HOST]->store(
+  table->field[HOTDBENGINE_ROLE_EDGES_FIELD_FROM_HOST]->store(
       from_user.second.str, from_user.second.length, system_charset_info);
-  table->field[MYSQL_ROLE_EDGES_FIELD_FROM_USER]->store(
+  table->field[HOTDBENGINE_ROLE_EDGES_FIELD_FROM_USER]->store(
       from_user.first.str, from_user.first.length, system_charset_info);
-  table->field[MYSQL_ROLE_EDGES_FIELD_TO_HOST]->store(
+  table->field[HOTDBENGINE_ROLE_EDGES_FIELD_TO_HOST]->store(
       to_user.second.str, to_user.second.length, system_charset_info);
-  table->field[MYSQL_ROLE_EDGES_FIELD_TO_USER]->store(
+  table->field[HOTDBENGINE_ROLE_EDGES_FIELD_TO_USER]->store(
       to_user.first.str, to_user.first.length, system_charset_info);
   char with_admin_option_char = with_admin_option ? 'Y' : 'N';
-  table->field[MYSQL_ROLE_EDGES_FIELD_TO_WITH_ADMIN_OPT]->store(
+  table->field[HOTDBENGINE_ROLE_EDGES_FIELD_TO_WITH_ADMIN_OPT]->store(
       &with_admin_option_char, 1, system_charset_info, CHECK_FIELD_IGNORE);
 
   key_copy(user_key, table->record[0], table->key_info,
@@ -132,7 +132,7 @@ bool modify_role_edges_in_table(THD *thd, TABLE *table,
         record[1].
       */
       store_record(table, record[1]);
-      table->field[MYSQL_ROLE_EDGES_FIELD_TO_WITH_ADMIN_OPT]->store(
+      table->field[HOTDBENGINE_ROLE_EDGES_FIELD_TO_WITH_ADMIN_OPT]->store(
           &with_admin_option_char, 1, system_charset_info, CHECK_FIELD_IGNORE);
       if (compare_records(
               table))  // if we already have WITH ADMIN this is a NOP
@@ -154,13 +154,13 @@ bool modify_default_roles_in_table(THD *thd, TABLE *table,
   if (table_intact.check(table, ACL_TABLES::TABLE_DEFAULT_ROLES)) return true;
 
   table->use_all_columns();
-  table->field[MYSQL_DEFAULT_ROLE_FIELD_HOST]->store(
+  table->field[HOTDBENGINE_DEFAULT_ROLE_FIELD_HOST]->store(
       auth_id.second.str, auth_id.second.length, system_charset_info);
-  table->field[MYSQL_DEFAULT_ROLE_FIELD_USER]->store(
+  table->field[HOTDBENGINE_DEFAULT_ROLE_FIELD_USER]->store(
       auth_id.first.str, auth_id.first.length, system_charset_info);
-  table->field[MYSQL_DEFAULT_ROLE_FIELD_ROLE_HOST]->store(
+  table->field[HOTDBENGINE_DEFAULT_ROLE_FIELD_ROLE_HOST]->store(
       role.second.str, role.second.length, system_charset_info);
-  table->field[MYSQL_DEFAULT_ROLE_FIELD_ROLE_USER]->store(
+  table->field[HOTDBENGINE_DEFAULT_ROLE_FIELD_ROLE_USER]->store(
       role.first.str, role.first.length, system_charset_info);
   key_copy(user_key, table->record[0], table->key_info,
            table->key_info->key_length);
@@ -228,16 +228,16 @@ bool populate_roles_caches(THD *thd, Table_ref *tablelst) {
     g_granted_roles->clear();
     while (!(read_rec_errcode = iterator->Read())) {
       char *from_host = get_field(
-          &tmp_mem, roles_edges_table->field[MYSQL_ROLE_EDGES_FIELD_FROM_HOST]);
+          &tmp_mem, roles_edges_table->field[HOTDBENGINE_ROLE_EDGES_FIELD_FROM_HOST]);
       char *from_user = get_field(
-          &tmp_mem, roles_edges_table->field[MYSQL_ROLE_EDGES_FIELD_FROM_USER]);
+          &tmp_mem, roles_edges_table->field[HOTDBENGINE_ROLE_EDGES_FIELD_FROM_USER]);
       char *to_host = get_field(
-          &tmp_mem, roles_edges_table->field[MYSQL_ROLE_EDGES_FIELD_TO_HOST]);
+          &tmp_mem, roles_edges_table->field[HOTDBENGINE_ROLE_EDGES_FIELD_TO_HOST]);
       char *to_user = get_field(
-          &tmp_mem, roles_edges_table->field[MYSQL_ROLE_EDGES_FIELD_TO_USER]);
+          &tmp_mem, roles_edges_table->field[HOTDBENGINE_ROLE_EDGES_FIELD_TO_USER]);
       char *with_admin_opt = get_field(
           &tmp_mem,
-          roles_edges_table->field[MYSQL_ROLE_EDGES_FIELD_TO_WITH_ADMIN_OPT]);
+          roles_edges_table->field[HOTDBENGINE_ROLE_EDGES_FIELD_TO_WITH_ADMIN_OPT]);
 
       int from_user_len = from_user ? strlen(from_user) : 0;
       int to_user_len = to_user ? strlen(to_user) : 0;
@@ -284,15 +284,15 @@ bool populate_roles_caches(THD *thd, Table_ref *tablelst) {
     g_default_roles->clear();
     while (!(read_rec_errcode = iterator->Read())) {
       char *host = get_field(
-          &tmp_mem, default_role_table->field[MYSQL_DEFAULT_ROLE_FIELD_HOST]);
+          &tmp_mem, default_role_table->field[HOTDBENGINE_DEFAULT_ROLE_FIELD_HOST]);
       char *user = get_field(
-          &tmp_mem, default_role_table->field[MYSQL_DEFAULT_ROLE_FIELD_USER]);
+          &tmp_mem, default_role_table->field[HOTDBENGINE_DEFAULT_ROLE_FIELD_USER]);
       char *role_host = get_field(
           &tmp_mem,
-          default_role_table->field[MYSQL_DEFAULT_ROLE_FIELD_ROLE_HOST]);
+          default_role_table->field[HOTDBENGINE_DEFAULT_ROLE_FIELD_ROLE_HOST]);
       char *role_user = get_field(
           &tmp_mem,
-          default_role_table->field[MYSQL_DEFAULT_ROLE_FIELD_ROLE_USER]);
+          default_role_table->field[HOTDBENGINE_DEFAULT_ROLE_FIELD_ROLE_USER]);
       int user_len = (user ? strlen(user) : 0);
       int host_len = (host ? strlen(host) : 0);
       int role_user_len = (role_user ? strlen(role_user) : 0);

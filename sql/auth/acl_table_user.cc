@@ -2239,13 +2239,13 @@ static bool replace_user_metadata(const std::string &json_blob,
                                   bool expect_text, TABLE *user_table) {
   Json_dom_ptr json_dom;
   Json_wrapper json_wrapper;
-  if (user_table->field[MYSQL_USER_FIELD_USER_ATTRIBUTES]->type() !=
+  if (user_table->field[HOTDBENGINE_USER_FIELD_USER_ATTRIBUTES]->type() !=
       MYSQL_TYPE_JSON) {
     my_error(ER_INVALID_USER_ATTRIBUTE_JSON, MYF(0));
     return true;
   }
 
-  if (user_table->field[MYSQL_USER_FIELD_USER_ATTRIBUTES]->is_null()) {
+  if (user_table->field[HOTDBENGINE_USER_FIELD_USER_ATTRIBUTES]->is_null()) {
     // If the field is a NULL value we create an empty json object.
     json_dom =
         create_dom_ptr<Json_object>();  // smart pointer will clean itself up.
@@ -2253,7 +2253,7 @@ static bool replace_user_metadata(const std::string &json_blob,
     // Get the current content of the field and varify that it's a valid JSON
     // object.
     if ((down_cast<Field_json *>(
-             user_table->field[MYSQL_USER_FIELD_USER_ATTRIBUTES])
+             user_table->field[HOTDBENGINE_USER_FIELD_USER_ATTRIBUTES])
              ->val_json(&json_wrapper))) {
       // DA is already set
       return true;
@@ -2278,7 +2278,7 @@ static bool replace_user_metadata(const std::string &json_blob,
   }
   Json_object *metadata = down_cast<Json_object *>(metadata_dom);
   Field_json *json_field = down_cast<Field_json *>(
-      user_table->field[MYSQL_USER_FIELD_USER_ATTRIBUTES]);
+      user_table->field[HOTDBENGINE_USER_FIELD_USER_ATTRIBUTES]);
   if (expect_text) {
     // ALTER USER x COMMENT y
     metadata->remove(acl_table::attribute_type_to_str
@@ -2356,9 +2356,9 @@ bool read_user_application_user_metadata_from_table(
     return true;
   }
   table->use_all_columns();
-  table->field[MYSQL_USER_FIELD_HOST]->store(host.str, host.length,
+  table->field[HOTDBENGINE_USER_FIELD_HOST]->store(host.str, host.length,
                                              system_charset_info);
-  table->field[MYSQL_USER_FIELD_USER]->store(user.str, user.length,
+  table->field[HOTDBENGINE_USER_FIELD_USER]->store(user.str, user.length,
                                              system_charset_info);
   key_copy(user_key, table->record[0], table->key_info,
            table->key_info->key_length);
@@ -2369,7 +2369,7 @@ bool read_user_application_user_metadata_from_table(
                    // string
   }
   char *attributes_field =
-      get_field(&tmp_mem, table->field[MYSQL_USER_FIELD_USER_ATTRIBUTES]);
+      get_field(&tmp_mem, table->field[HOTDBENGINE_USER_FIELD_USER_ATTRIBUTES]);
   /*
     If the attribute field is empty we return empty string. An alternative is to
     return an empty JSON object, but we don't want to show the ATTRIBUTE field

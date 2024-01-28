@@ -105,7 +105,7 @@ static const char *ACL_TABLE_NAMES[MAX_ACL_TABLE_NAMES] = {
     "role_edges",    "default_roles",
     "global_grants", "password_history"};
 
-static const TABLE_FIELD_TYPE mysql_db_table_fields[MYSQL_DB_FIELD_COUNT] = {
+static const TABLE_FIELD_TYPE hotdbengine_db_table_fields[HOTDBENGINE_DB_FIELD_COUNT] = {
     {{STRING_WITH_LEN("Host")}, {STRING_WITH_LEN("char(255)")}, {nullptr, 0}},
     {{STRING_WITH_LEN("Db")}, {STRING_WITH_LEN("char(64)")}, {nullptr, 0}},
     {{STRING_WITH_LEN("User")},
@@ -169,7 +169,7 @@ static const TABLE_FIELD_TYPE mysql_db_table_fields[MYSQL_DB_FIELD_COUNT] = {
      {STRING_WITH_LEN("enum('N','Y')")},
      {STRING_WITH_LEN("utf8mb3")}}};
 
-static const TABLE_FIELD_TYPE mysql_user_table_fields[MYSQL_USER_FIELD_COUNT] =
+static const TABLE_FIELD_TYPE hotdbengine_user_table_fields[HOTDBENGINE_USER_FIELD_COUNT] =
     {{{STRING_WITH_LEN("Host")}, {STRING_WITH_LEN("char(255)")}, {nullptr, 0}},
      {{STRING_WITH_LEN("User")},
       {STRING_WITH_LEN("char(" USERNAME_CHAR_LENGTH_STR ")")},
@@ -317,7 +317,7 @@ static const TABLE_FIELD_TYPE mysql_user_table_fields[MYSQL_USER_FIELD_COUNT] =
       {nullptr, 0}}};
 
 static const TABLE_FIELD_TYPE
-    mysql_proxies_priv_table_fields[MYSQL_PROXIES_PRIV_FIELD_COUNT] = {
+    hotdbengine_proxies_priv_table_fields[HOTDBENGINE_PROXIES_PRIV_FIELD_COUNT] = {
         {{STRING_WITH_LEN("Host")},
          {STRING_WITH_LEN("char(255)")},
          {nullptr, 0}},
@@ -341,7 +341,7 @@ static const TABLE_FIELD_TYPE
          {nullptr, 0}}};
 
 static const TABLE_FIELD_TYPE
-    mysql_procs_priv_table_fields[MYSQL_PROCS_PRIV_FIELD_COUNT] = {
+    hotdbengine_procs_priv_table_fields[HOTDBENGINE_PROCS_PRIV_FIELD_COUNT] = {
         {{STRING_WITH_LEN("Host")},
          {STRING_WITH_LEN("char(255)")},
          {nullptr, 0}},
@@ -366,7 +366,7 @@ static const TABLE_FIELD_TYPE
          {nullptr, 0}}};
 
 static const TABLE_FIELD_TYPE
-    mysql_columns_priv_table_fields[MYSQL_COLUMNS_PRIV_FIELD_COUNT] = {
+    hotdbengine_columns_priv_table_fields[HOTDBENGINE_COLUMNS_PRIV_FIELD_COUNT] = {
         {{STRING_WITH_LEN("Host")},
          {STRING_WITH_LEN("char(255)")},
          {nullptr, 0}},
@@ -388,7 +388,7 @@ static const TABLE_FIELD_TYPE
          {STRING_WITH_LEN("utf8mb3")}}};
 
 static const TABLE_FIELD_TYPE
-    mysql_tables_priv_table_fields[MYSQL_TABLES_PRIV_FIELD_COUNT] = {
+    hotdbengine_tables_priv_table_fields[HOTDBENGINE_TABLES_PRIV_FIELD_COUNT] = {
         {{STRING_WITH_LEN("Host")},
          {STRING_WITH_LEN("char(255)")},
          {nullptr, 0}},
@@ -415,7 +415,7 @@ static const TABLE_FIELD_TYPE
          {STRING_WITH_LEN("utf8mb3")}}};
 
 static const TABLE_FIELD_TYPE
-    mysql_role_edges_table_fields[MYSQL_ROLE_EDGES_FIELD_COUNT] = {
+    hotdbengine_role_edges_table_fields[HOTDBENGINE_ROLE_EDGES_FIELD_COUNT] = {
         {{STRING_WITH_LEN("FROM_HOST")},
          {STRING_WITH_LEN("char(255)")},
          {nullptr, 0}},
@@ -433,7 +433,7 @@ static const TABLE_FIELD_TYPE
          {STRING_WITH_LEN("utf8mb3")}}};
 
 static const TABLE_FIELD_TYPE
-    mysql_default_roles_table_fields[MYSQL_DEFAULT_ROLES_FIELD_COUNT] = {
+   hotdbengine_default_roles_table_fields[HOTDBENGINE_DEFAULT_ROLES_FIELD_COUNT] = {
         {{STRING_WITH_LEN("HOST")},
          {STRING_WITH_LEN("char(255)")},
          {nullptr, 0}},
@@ -448,7 +448,7 @@ static const TABLE_FIELD_TYPE
          {nullptr, 0}}};
 
 static const TABLE_FIELD_TYPE
-    mysql_password_history_table_fields[MYSQL_PASSWORD_HISTORY_FIELD_COUNT] = {
+    hotdbengine_password_history_table_fields[HOTDBENGINE_PASSWORD_HISTORY_FIELD_COUNT] = {
         {{STRING_WITH_LEN("Host")},
          {STRING_WITH_LEN("char(255)")},
          {nullptr, 0}},
@@ -463,7 +463,7 @@ static const TABLE_FIELD_TYPE
          {nullptr, 0}}};
 
 static const TABLE_FIELD_TYPE
-    mysql_dynamic_priv_table_fields[MYSQL_DYNAMIC_PRIV_FIELD_COUNT] = {
+    hotdbengine_dynamic_priv_table_fields[HOTDBENGINE_DYNAMIC_PRIV_FIELD_COUNT] = {
         {{STRING_WITH_LEN("USER")},
          {STRING_WITH_LEN("char(" USERNAME_CHAR_LENGTH_STR ")")},
          {nullptr, 0}},
@@ -479,16 +479,16 @@ static const TABLE_FIELD_TYPE
 
 /** keep in sync with @ref ACL_TABLES */
 const TABLE_FIELD_DEF Acl_table_intact::mysql_acl_table_defs[] = {
-    {MYSQL_USER_FIELD_COUNT, mysql_user_table_fields},
-    {MYSQL_DB_FIELD_COUNT, mysql_db_table_fields},
-    {MYSQL_TABLES_PRIV_FIELD_COUNT, mysql_tables_priv_table_fields},
-    {MYSQL_COLUMNS_PRIV_FIELD_COUNT, mysql_columns_priv_table_fields},
-    {MYSQL_PROCS_PRIV_FIELD_COUNT, mysql_procs_priv_table_fields},
-    {MYSQL_PROXIES_PRIV_FIELD_COUNT, mysql_proxies_priv_table_fields},
-    {MYSQL_ROLE_EDGES_FIELD_COUNT, mysql_role_edges_table_fields},
-    {MYSQL_DEFAULT_ROLES_FIELD_COUNT, mysql_default_roles_table_fields},
-    {MYSQL_DYNAMIC_PRIV_FIELD_COUNT, mysql_dynamic_priv_table_fields},
-    {MYSQL_PASSWORD_HISTORY_FIELD_COUNT, mysql_password_history_table_fields}};
+    {HOTDBENGINE_USER_FIELD_COUNT, hotdbengine_user_table_fields},
+    {HOTDBENGINE_DB_FIELD_COUNT, hotdbengine_db_table_fields},
+    {HOTDBENGINE_TABLES_PRIV_FIELD_COUNT, hotdbengine_tables_priv_table_fields},
+    {HOTDBENGINE_COLUMNS_PRIV_FIELD_COUNT, hotdbengine_columns_priv_table_fields},
+    {HOTDBENGINE_PROCS_PRIV_FIELD_COUNT, hotdbengine_procs_priv_table_fields},
+    {HOTDBENGINE_PROXIES_PRIV_FIELD_COUNT, hotdbengine_proxies_priv_table_fields},
+    {HOTDBENGINE_ROLE_EDGES_FIELD_COUNT, hotdbengine_role_edges_table_fields},
+    {HOTDBENGINE_DEFAULT_ROLES_FIELD_COUNT, hotdbengine_default_roles_table_fields},
+    {HOTDBENGINE_DYNAMIC_PRIV_FIELD_COUNT, hotdbengine_dynamic_priv_table_fields},
+    {HOTDBENGINE_PASSWORD_HISTORY_FIELD_COUNT, hotdbengine_password_history_table_fields}};
 
 static bool acl_tables_setup_for_write_and_acquire_mdl(THD *thd,
                                                        Table_ref *tables);

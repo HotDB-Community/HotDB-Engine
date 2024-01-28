@@ -533,11 +533,11 @@ void ACL_PROXY_USER::init(MEM_ROOT *mem, const char *host_arg,
 }
 
 void ACL_PROXY_USER::init(TABLE *table, MEM_ROOT *mem) {
-  init(get_field(mem, table->field[MYSQL_PROXIES_PRIV_HOST]),
-       get_field(mem, table->field[MYSQL_PROXIES_PRIV_USER]),
-       get_field(mem, table->field[MYSQL_PROXIES_PRIV_PROXIED_HOST]),
-       get_field(mem, table->field[MYSQL_PROXIES_PRIV_PROXIED_USER]),
-       table->field[MYSQL_PROXIES_PRIV_WITH_GRANT]->val_int() != 0);
+  init(get_field(mem, table->field[HOTDBENGINE_PROXIES_PRIV_HOST]),
+       get_field(mem, table->field[HOTDBENGINE_PROXIES_PRIV_USER]),
+       get_field(mem, table->field[HOTDBENGINE_PROXIES_PRIV_PROXIED_HOST]),
+       get_field(mem, table->field[HOTDBENGINE_PROXIES_PRIV_PROXIED_USER]),
+       table->field[HOTDBENGINE_PROXIES_PRIV_WITH_GRANT]->val_int() != 0);
 }
 
 bool ACL_PROXY_USER::check_validity(bool check_no_resolve) {
@@ -623,16 +623,16 @@ int ACL_PROXY_USER::store_pk(TABLE *table, const LEX_CSTRING &hostname,
                       user.str ? user.str : "<NULL>",
                       proxied_host.str ? proxied_host.str : "<NULL>",
                       proxied_user.str ? proxied_user.str : "<NULL>"));
-  if (table->field[MYSQL_PROXIES_PRIV_HOST]->store(
+  if (table->field[HOTDBENGINE_PROXIES_PRIV_HOST]->store(
           hostname.str, hostname.length, system_charset_info))
     return true;
-  if (table->field[MYSQL_PROXIES_PRIV_USER]->store(user.str, user.length,
+  if (table->field[HOTDBENGINE_PROXIES_PRIV_USER]->store(user.str, user.length,
                                                    system_charset_info))
     return true;
-  if (table->field[MYSQL_PROXIES_PRIV_PROXIED_HOST]->store(
+  if (table->field[HOTDBENGINE_PROXIES_PRIV_PROXIED_HOST]->store(
           proxied_host.str, proxied_host.length, system_charset_info))
     return true;
-  if (table->field[MYSQL_PROXIES_PRIV_PROXIED_USER]->store(
+  if (table->field[HOTDBENGINE_PROXIES_PRIV_PROXIED_USER]->store(
           proxied_user.str, proxied_user.length, system_charset_info))
     return true;
 
@@ -642,7 +642,7 @@ int ACL_PROXY_USER::store_pk(TABLE *table, const LEX_CSTRING &hostname,
 int ACL_PROXY_USER::store_with_grant(TABLE *table, bool with_grant) {
   DBUG_TRACE;
   DBUG_PRINT("info", ("with_grant=%s", with_grant ? "TRUE" : "FALSE"));
-  if (table->field[MYSQL_PROXIES_PRIV_WITH_GRANT]->store(with_grant ? 1 : 0,
+  if (table->field[HOTDBENGINE_PROXIES_PRIV_WITH_GRANT]->store(with_grant ? 1 : 0,
                                                          true))
     return true;
 
@@ -657,12 +657,12 @@ int ACL_PROXY_USER::store_data_record(TABLE *table, const LEX_CSTRING &hostname,
   DBUG_TRACE;
   if (store_pk(table, hostname, user, proxied_host, proxied_user)) return true;
   if (store_with_grant(table, with_grant)) return true;
-  if (table->field[MYSQL_PROXIES_PRIV_GRANTOR]->store(grantor, strlen(grantor),
+  if (table->field[HOTDBENGINE_PROXIES_PRIV_GRANTOR]->store(grantor, strlen(grantor),
                                                       system_charset_info))
     return true;
 
   my_timeval tm = table->in_use->query_start_timeval_trunc(0);
-  table->field[MYSQL_PROXIES_PRIV_TIMESTAMP]->store_timestamp(&tm);
+  table->field[HOTDBENGINE_PROXIES_PRIV_TIMESTAMP]->store_timestamp(&tm);
 
   return false;
 }
@@ -974,8 +974,8 @@ GRANT_NAME::GRANT_NAME(TABLE *form, bool is_routine) {
   hash_key.append(tname);
   hash_key.push_back('\0');
 
-  if (form->field[MYSQL_TABLES_PRIV_FIELD_TABLE_PRIV]) {
-    privs = (ulong)form->field[MYSQL_TABLES_PRIV_FIELD_TABLE_PRIV]->val_int();
+  if (form->field[HOTDBENGINE_TABLES_PRIV_FIELD_TABLE_PRIV]) {
+    privs = (ulong)form->field[HOTDBENGINE_TABLES_PRIV_FIELD_TABLE_PRIV]->val_int();
     privs = fix_rights_for_table(privs);
   }
 }
@@ -989,8 +989,8 @@ GRANT_TABLE::GRANT_TABLE(TABLE *form)
     return;
   }
 
-  if (form->field[MYSQL_TABLES_PRIV_FIELD_COLUMN_PRIV]) {
-    cols = (ulong)form->field[MYSQL_TABLES_PRIV_FIELD_COLUMN_PRIV]->val_int();
+  if (form->field[HOTDBENGINE_TABLES_PRIV_FIELD_COLUMN_PRIV]) {
+    cols = (ulong)form->field[HOTDBENGINE_TABLES_PRIV_FIELD_COLUMN_PRIV]->val_int();
     cols = fix_rights_for_column(cols);
   } else
     cols = 0;
@@ -1866,13 +1866,13 @@ static bool acl_load(THD *thd, Table_ref *tables) {
     /* Reading record in mysql.db */
     ACL_DB db;
     db.host.update_hostname(
-        get_field(&global_acl_memory, table->field[MYSQL_DB_FIELD_HOST]));
-    db.db = get_field(&global_acl_memory, table->field[MYSQL_DB_FIELD_DB]);
+        get_field(&global_acl_memory, table->field[HOTDBENGINE_DB_FIELD_HOST]));
+    db.db = get_field(&global_acl_memory, table->field[HOTDBENGINE_DB_FIELD_DB]);
     if (!db.db) {
       LogErr(WARNING_LEVEL, ER_AUTHCACHE_DB_IGNORED_EMPTY_NAME);
       continue;
     }
-    db.user = get_field(&global_acl_memory, table->field[MYSQL_DB_FIELD_USER]);
+    db.user = get_field(&global_acl_memory, table->field[HOTDBENGINE_DB_FIELD_USER]);
     if (check_no_resolve && hostname_requires_resolving(db.host.get_host()) &&
         strcmp(db.host.get_host(), "localhost") != 0) {
       LogErr(WARNING_LEVEL, ER_AUTHCACHE_DB_SKIPPED_NEEDS_RESOLVE, db.db,
