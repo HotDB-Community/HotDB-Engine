@@ -23711,7 +23711,197 @@ static MYSQL_SYSVAR_ULONG(
     NULL, NULL, INNODB_LOG_FLUSH_NOTIFIER_TIMEOUT_DEFAULT, 0, ULONG_MAX, 0);
 
 #endif /* ENABLE_EXPERIMENT_SYSVARS */
+//stage 2
 
+static MYSQL_SYSVAR_BOOL(
+    hdbe_log_compressed_pages, page_zip_log_pages, PLUGIN_VAR_OPCMDARG,
+    "Enables/disables the logging of entire compressed page images."
+    " InnoDB logs the compressed pages to prevent corruption if"
+    " the zlib compression algorithm changes."
+    " When turned OFF, InnoDB will assume that the zlib"
+    " compression algorithm doesn't change.",
+    nullptr, nullptr, true);
+
+static MYSQL_SYSVAR_DOUBLE(hdbe_max_dirty_pages_pct, srv_max_buf_pool_modified_pct,
+                           PLUGIN_VAR_RQCMDARG,
+                           "Percentage of dirty pages allowed in bufferpool.",
+                           nullptr, innodb_max_dirty_pages_pct_update, 90.0, 0,
+                           99.999, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_adaptive_flushing_lwm, srv_adaptive_flushing_lwm, PLUGIN_VAR_RQCMDARG,
+    "Percentage of log capacity below which no adaptive flushing happens.",
+    nullptr, nullptr, 10, 0, 70, 0);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_adaptive_flushing, srv_adaptive_flushing, PLUGIN_VAR_NOCMDARG,
+    "Attempt flushing dirty pages to avoid IO bursts at checkpoints.", nullptr,
+    nullptr, true);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_flush_sync, srv_flush_sync, PLUGIN_VAR_NOCMDARG,
+    "Allow IO bursts at the checkpoints ignoring io_capacity setting.", nullptr,
+    nullptr, true);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_flushing_avg_loops, srv_flushing_avg_loops, PLUGIN_VAR_RQCMDARG,
+    "Number of iterations over which the background flushing is averaged.",
+    nullptr, nullptr, 30, 1, 1000, 0);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_max_purge_lag, srv_max_purge_lag, PLUGIN_VAR_RQCMDARG,
+    "Desired maximum length of the purge queue (0 = no limit)", nullptr,
+    nullptr, 0, 0, ~0UL, 0);
+
+static MYSQL_SYSVAR_ULONG(hdbe_max_purge_lag_delay, srv_max_purge_lag_delay,
+                          PLUGIN_VAR_RQCMDARG,
+                          "Maximum delay of user threads in micro-seconds",
+                          nullptr, nullptr, 0L, /* Default setting */
+                          0L,                   /* Minimum value */
+                          10000000UL, 0);       /* Maximum value */
+
+static MYSQL_SYSVAR_UINT(
+    hdbe_old_blocks_pct, innobase_old_blocks_pct, PLUGIN_VAR_RQCMDARG,
+    "Percentage of the buffer pool to reserve for 'old' blocks.", nullptr,
+    innodb_old_blocks_pct_update, 100 * 3 / 8, 5, 95, 0);
+
+static MYSQL_SYSVAR_UINT(
+    hdbe_old_blocks_time, buf_LRU_old_threshold, PLUGIN_VAR_RQCMDARG,
+    "Move blocks to the 'new' end of the buffer pool if the first access"
+    " was at least this many milliseconds ago."
+    " The timeout is disabled if 0.",
+    nullptr, nullptr, 1000, 0, UINT_MAX32, 0);
+
+static MYSQL_SYSVAR_LONG(
+    hdbe_open_files, innobase_open_files, PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+    "How many files at the maximum InnoDB keeps open at the same time.",
+    nullptr, nullptr, 0L, 0L, LONG_MAX, 0);
+
+static MYSQL_SYSVAR_BOOL(hdbe_optimize_fulltext_only, innodb_optimize_fulltext_only,
+                         PLUGIN_VAR_NOCMDARG,
+                         "Only optimize the Fulltext index of the table",
+                         nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(hdbe_rollback_on_timeout, innobase_rollback_on_timeout,
+                         PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY,
+                         "Roll back the complete transaction on lock wait "
+                         "timeout, for 4.x compatibility (disabled by default)",
+                         nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_STR(hdbe_ft_aux_table, fts_internal_tbl_name,
+                        PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_MEMALLOC,
+                        "FTS internal auxiliary table to be checked",
+                        innodb_internal_table_validate, nullptr, nullptr);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_ft_enable_diag_print, fts_enable_diag_print, PLUGIN_VAR_OPCMDARG,
+    "Whether to enable additional FTS diagnostic printout ", nullptr, nullptr,
+    false);
+
+static MYSQL_SYSVAR_STR(hdbe_ft_server_stopword_table,
+                        innobase_server_stopword_table,
+                        PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_MEMALLOC,
+                        "The user supplied stopword table name.",
+                        innodb_stopword_table_validate, nullptr, nullptr);
+
+static MYSQL_THDVAR_STR(
+    hdbe_ft_user_stopword_table, PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_MEMALLOC,
+    "User supplied stopword table name, effective in the session level.",
+    innodb_stopword_table_validate, nullptr, nullptr);
+
+static MYSQL_SYSVAR_BOOL(hdbe_disable_sort_file_cache, srv_disable_sort_file_cache,
+                         PLUGIN_VAR_OPCMDARG,
+                         "Whether to disable OS system file cache for sort I/O",
+                         nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_stats_on_metadata, innobase_stats_on_metadata, PLUGIN_VAR_OPCMDARG,
+    "Enable statistics gathering for metadata commands such as"
+    " SHOW TABLE STATUS for tables that use transient statistics (off by "
+    "default)",
+    nullptr, nullptr, false);
+
+static MYSQL_SYSVAR_ULONGLONG(
+    hdbe_stats_transient_sample_pages, srv_stats_transient_sample_pages,
+    PLUGIN_VAR_RQCMDARG,
+    "The number of leaf index pages to sample when calculating transient"
+    " statistics (if persistent statistics are not used, default 8)",
+    nullptr, nullptr, 8, 1, ~0ULL, 0);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_stats_persistent, srv_stats_persistent, PLUGIN_VAR_OPCMDARG,
+    "InnoDB persistent statistics enabled for all tables unless overridden"
+    " at table level",
+    nullptr, nullptr, true);
+
+static MYSQL_SYSVAR_ULONGLONG(
+    hdbe_stats_persistent_sample_pages, srv_stats_persistent_sample_pages,
+    PLUGIN_VAR_RQCMDARG,
+    "The number of leaf index pages to sample when calculating persistent"
+    " statistics (by ANALYZE, default 20)",
+    nullptr, nullptr, 20, 1, ~0ULL, 0);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_stats_auto_recalc, srv_stats_auto_recalc, PLUGIN_VAR_OPCMDARG,
+    "InnoDB automatic recalculation of persistent statistics enabled for all"
+    " tables unless overridden at table level (automatic recalculation is only"
+    " done when InnoDB decides that the table has changed too much and needs a"
+    " new statistics)",
+    nullptr, nullptr, true);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_adaptive_hash_index, srv_btr_search_enabled, PLUGIN_VAR_OPCMDARG,
+    "Enable InnoDB adaptive hash index (enabled by default). "
+    " Disable with --skip-innodb-adaptive-hash-index.",
+    nullptr, innodb_adaptive_hash_index_update, true);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_adaptive_hash_index_parts, btr_ahi_parts,
+    PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_READONLY,
+    "Number of InnoDB Adaptive Hash Index Partitions. (default = 8). ", nullptr,
+    nullptr, 8, 1, 512, 0);
+
+static MYSQL_SYSVAR_ENUM(
+    hdbe_stats_method, srv_innodb_stats_method, PLUGIN_VAR_RQCMDARG,
+    "Specifies how InnoDB index statistics collection code should"
+    " treat NULLs. Possible values are NULLS_EQUAL (default),"
+    " NULLS_UNEQUAL and NULLS_IGNORED",
+    nullptr, nullptr, SRV_STATS_NULLS_EQUAL, &innodb_stats_method_typelib);
+
+static MYSQL_SYSVAR_ULONG(
+    hdbe_replication_delay, srv_replication_delay, PLUGIN_VAR_RQCMDARG,
+    "Replication thread delay (ms) on the slave server if"
+    " innodb_thread_concurrency is reached (0 by default)",
+    nullptr, nullptr, 0, 0, ~0UL, 0);
+
+static MYSQL_SYSVAR_BOOL(
+    hdbe_status_file, innobase_create_status_file,
+    PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_NOSYSVAR,
+    "Enable SHOW ENGINE INNODB STATUS output in the innodb_status.<pid> file",
+    nullptr, nullptr, false);
+
+static MYSQL_THDVAR_BOOL(hdbe_strict_mode, PLUGIN_VAR_OPCMDARG,
+                         "Use strict mode when evaluating create options.",
+                         innodb_check_session_admin, nullptr, true);
+
+static MYSQL_SYSVAR_ULONG(hdbe_sort_buffer_size, srv_sort_buf_size,
+                          PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+                          "Memory buffer size for index creation", nullptr,
+                          nullptr, 1048576, 65536, 64 << 20, 0);
+
+static MYSQL_SYSVAR_ULONGLONG(
+    hdbe_online_alter_log_max_size, srv_online_max_size, PLUGIN_VAR_RQCMDARG,
+    "Maximum modification log file size for online index creation", nullptr,
+    nullptr, 128 << 20, 65536, ~0ULL, 0);
+
+static MYSQL_SYSVAR_STR(hdbe_directories, srv_innodb_directories,
+                        PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY |
+                            PLUGIN_VAR_NOPERSIST,
+			"List of directories 'dir1;dir2;..;dirN' to scan for "
+                        "tablespace files. Default is to scan "
+                        "'innodb-data-home-dir;innodb-undo-directory;datadir'",
+                        nullptr, nullptr, nullptr);
+//stage 3
 
 static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(api_trx_level),
@@ -24032,6 +24222,38 @@ static SYS_VAR *innobase_system_variables[] = {
     MYSQL_SYSVAR(hdbe_log_flush_notifier_spin_delay),
     MYSQL_SYSVAR(hdbe_log_flush_notifier_timeout),
 #endif /* ENABLE_EXPERIMENT_SYSVARS */
+    MYSQL_SYSVAR(hdbe_log_compressed_pages),
+    MYSQL_SYSVAR(hdbe_max_dirty_pages_pct),
+    MYSQL_SYSVAR(hdbe_adaptive_flushing_lwm),
+    MYSQL_SYSVAR(hdbe_adaptive_flushing),
+    MYSQL_SYSVAR(hdbe_flush_sync),
+    MYSQL_SYSVAR(hdbe_flushing_avg_loops),
+    MYSQL_SYSVAR(hdbe_max_purge_lag),
+    MYSQL_SYSVAR(hdbe_max_purge_lag_delay),
+    MYSQL_SYSVAR(hdbe_old_blocks_pct),
+    MYSQL_SYSVAR(hdbe_old_blocks_time),
+    MYSQL_SYSVAR(hdbe_open_files),
+    MYSQL_SYSVAR(hdbe_optimize_fulltext_only),
+    MYSQL_SYSVAR(hdbe_rollback_on_timeout),
+    MYSQL_SYSVAR(hdbe_ft_aux_table),
+    MYSQL_SYSVAR(hdbe_ft_enable_diag_print),
+    MYSQL_SYSVAR(hdbe_ft_server_stopword_table),
+    MYSQL_SYSVAR(hdbe_ft_user_stopword_table),
+    MYSQL_SYSVAR(hdbe_disable_sort_file_cache),
+    MYSQL_SYSVAR(hdbe_stats_on_metadata),
+    MYSQL_SYSVAR(hdbe_stats_transient_sample_pages),
+    MYSQL_SYSVAR(hdbe_stats_persistent),
+    MYSQL_SYSVAR(hdbe_stats_persistent_sample_pages),
+    MYSQL_SYSVAR(hdbe_stats_auto_recalc),
+    MYSQL_SYSVAR(hdbe_adaptive_hash_index),
+    MYSQL_SYSVAR(hdbe_adaptive_hash_index_parts),
+    MYSQL_SYSVAR(hdbe_stats_method),
+    MYSQL_SYSVAR(hdbe_replication_delay),
+    MYSQL_SYSVAR(hdbe_status_file),
+    MYSQL_SYSVAR(hdbe_strict_mode),
+    MYSQL_SYSVAR(hdbe_sort_buffer_size),
+    MYSQL_SYSVAR(hdbe_online_alter_log_max_size),
+    MYSQL_SYSVAR(hdbe_directories),
     nullptr};
 
 mysql_declare_plugin(innobase){
